@@ -63,17 +63,26 @@ export default function PersonalInfoScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50 p-4">
-      <div className="max-w-2xl mx-auto px-2">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 p-4 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 via-indigo-400/3 to-cyan-400/5"></div>
+      <div className="absolute top-10 right-20 w-24 h-24 bg-blue-400/10 rounded-full blur-xl"></div>
+      <div className="absolute bottom-10 left-20 w-32 h-32 bg-cyan-400/10 rounded-full blur-xl"></div>
+      
+      <div className="max-w-2xl mx-auto px-2 relative">
         <ProgressStepper currentStep={2} totalSteps={7} className="mb-8" />
         
-        <Card className="shadow-xl">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold">Tell us about yourself</CardTitle>
-            <CardDescription className="text-lg">This helps us create your personalized fitness plan</CardDescription>
+        <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-sm animate-fade-in-up">
+          <CardHeader className="text-center pb-4 pt-6">
+            <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              Tell us about yourself
+            </CardTitle>
+            <CardDescription className="text-base sm:text-lg text-gray-600 font-medium">
+              This helps us create your personalized fitness plan
+            </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 sm:space-y-6">
             {/* Name */}
             <div className="space-y-2">
               <Label htmlFor="name">Full Name *</Label>
@@ -138,16 +147,21 @@ export default function PersonalInfoScreen() {
             </div>
 
             {/* Unit System Toggle */}
-            <div className="flex items-center justify-center space-x-4 p-4 bg-muted rounded-lg">
-              <Label htmlFor="unit-system" className="text-sm font-medium">
+            <div className="flex items-center justify-center space-x-4 p-6 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl border border-blue-200/50">
+              <Label htmlFor="unit-system" className={`text-sm font-semibold transition-colors duration-300 ${
+                state.data.unitSystem === 'metric' ? 'text-blue-600' : 'text-gray-500'
+              }`}>
                 Metric
               </Label>
               <Switch
                 id="unit-system"
                 checked={state.data.unitSystem === 'imperial'}
                 onCheckedChange={toggleUnitSystem}
+                className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-cyan-500"
               />
-              <Label htmlFor="unit-system" className="text-sm font-medium">
+              <Label htmlFor="unit-system" className={`text-sm font-semibold transition-colors duration-300 ${
+                state.data.unitSystem === 'imperial' ? 'text-blue-600' : 'text-gray-500'
+              }`}>
                 Imperial
               </Label>
             </div>
@@ -243,13 +257,13 @@ export default function PersonalInfoScreen() {
             <Button
               onClick={handleBack}
               variant="ghost"
-              className="px-6"
+              className="px-8 h-12 text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-all duration-300"
             >
               ← Back
             </Button>
             <Button
               onClick={handleNext}
-              className="px-8"
+              className="px-10 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
               size="lg"
             >
               Next →

@@ -73,27 +73,40 @@ export default function PreferencesScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50 p-4">
-      <div className="max-w-4xl mx-auto px-2">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 p-4 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 via-indigo-400/3 to-cyan-400/5"></div>
+      <div className="absolute top-10 right-20 w-24 h-24 bg-blue-400/10 rounded-full blur-xl"></div>
+      <div className="absolute bottom-10 left-20 w-32 h-32 bg-cyan-400/10 rounded-full blur-xl"></div>
+      
+      <div className="max-w-4xl mx-auto px-2 relative">
         <ProgressStepper currentStep={5} totalSteps={7} className="mb-8" />
         
-        <Card className="shadow-xl">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold">Let's customize your experience</CardTitle>
-            <CardDescription className="text-lg">Tell us about your preferences and availability</CardDescription>
+        <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-sm animate-fade-in-up">
+          <CardHeader className="text-center pb-4 pt-6">
+            <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              Let's customize your experience
+            </CardTitle>
+            <CardDescription className="text-base sm:text-lg text-gray-600 font-medium">
+              Tell us about your preferences and availability
+            </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-8">
+          <CardContent className="space-y-6 sm:space-y-8">
             {/* Workout Duration */}
             <div>
-              <h3 className="text-xl font-semibold mb-4">Preferred workout duration</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
+              <h3 className="text-lg font-semibold mb-3">Preferred workout duration</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                 {workoutDurations.map((duration) => (
                   <Button
                     key={duration.value}
                     onClick={() => handleDurationSelect(duration.value)}
                     variant={state.data.workoutDuration === duration.value ? "default" : "outline"}
-                    className="h-auto p-4 flex flex-col items-center space-y-2"
+                    className={`h-auto p-3 flex flex-col items-center space-y-1 transition-all duration-300 ${
+                      state.data.workoutDuration === duration.value
+                        ? 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg'
+                        : 'hover:shadow-md'
+                    }`}
                   >
                     <div className="font-semibold">{duration.label}</div>
                     <div className="text-sm opacity-70">{duration.description}</div>
@@ -104,20 +117,22 @@ export default function PreferencesScreen() {
 
             {/* Available Days */}
             <div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Available workout days</h3>
-              <p className="text-gray-600 mb-4">Select the days you can work out each week</p>
-              <div className="grid grid-cols-7 gap-1 sm:gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Available workout days</h3>
+              <p className="text-sm text-gray-600 mb-3">Select the days you can work out each week</p>
+              
+              {/* Mobile: Flexible layout, Desktop: 7 columns */}
+              <div className="flex flex-wrap gap-2 sm:grid sm:grid-cols-7 sm:gap-3">
                 {daysOfWeek.map((day) => (
                   <button
                     key={day.id}
                     onClick={() => handleDayToggle(day.id)}
-                    className={`p-3 rounded-xl border-2 text-center transition-all duration-300 transform hover:scale-105 ${
+                    className={`flex-1 min-w-[50px] sm:min-w-0 p-2 sm:p-3 rounded-lg border-2 text-center transition-all duration-300 transform hover:scale-105 ${
                       state.data.availableDays.includes(day.id)
-                        ? 'border-blue-500 bg-blue-50 shadow-lg'
+                        ? 'border-blue-500 bg-gradient-to-r from-blue-50 to-cyan-50 shadow-lg'
                         : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
                     }`}
                   >
-                    <div className="font-semibold text-gray-900">{day.label}</div>
+                    <div className="font-semibold text-gray-900 text-sm sm:text-base">{day.label}</div>
                   </button>
                 ))}
               </div>
@@ -130,13 +145,13 @@ export default function PreferencesScreen() {
 
             {/* Workout Time */}
             <div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Preferred workout time</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Preferred workout time</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                 {workoutTimes.map((time) => (
                   <button
                     key={time.value}
                     onClick={() => handleTimeSelect(time.value)}
-                    className={`p-4 rounded-xl border-2 text-center transition-all duration-300 transform hover:scale-105 ${
+                    className={`p-3 rounded-lg border-2 text-center transition-all duration-300 transform hover:scale-105 ${
                       state.data.workoutTime === time.value
                         ? 'border-blue-500 bg-blue-50 shadow-lg'
                         : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
@@ -152,13 +167,13 @@ export default function PreferencesScreen() {
 
             {/* Equipment */}
             <div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Equipment availability</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Equipment availability</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                 {equipmentOptions.map((equipment) => (
                   <button
                     key={equipment.value}
                     onClick={() => handleEquipmentSelect(equipment.value)}
-                    className={`p-4 rounded-xl border-2 text-center transition-all duration-300 transform hover:scale-105 ${
+                    className={`p-3 rounded-lg border-2 text-center transition-all duration-300 transform hover:scale-105 ${
                       state.data.equipment === equipment.value
                         ? 'border-blue-500 bg-blue-50 shadow-lg'
                         : 'border-gray-200 hover:border-gray-300 hover:shadow-md'
@@ -208,18 +223,18 @@ export default function PreferencesScreen() {
           </CardContent>
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between p-6 pt-0">
+          <div className="flex justify-between p-4 pt-0">
             <Button
               onClick={handleBack}
               variant="ghost"
-              className="px-6"
+              className="px-6 h-10 text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-all duration-300"
             >
               ← Back
             </Button>
             <Button
               onClick={handleNext}
               disabled={!state.data.workoutDuration || !state.data.workoutTime || !state.data.equipment || state.data.availableDays.length === 0}
-              className="px-8"
+              className="px-8 h-10 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               size="lg"
             >
               Next →

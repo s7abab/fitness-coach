@@ -73,14 +73,23 @@ export default function FitnessLevelScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50 p-4">
-      <div className="max-w-4xl mx-auto px-2">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 p-4 relative overflow-hidden">
+      {/* Background decoration */}
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 via-indigo-400/3 to-cyan-400/5"></div>
+      <div className="absolute top-20 left-10 w-28 h-28 bg-blue-400/10 rounded-full blur-xl"></div>
+      <div className="absolute bottom-20 right-10 w-36 h-36 bg-cyan-400/10 rounded-full blur-xl"></div>
+      
+      <div className="max-w-4xl mx-auto px-2 relative">
         <ProgressStepper currentStep={3} totalSteps={7} className="mb-8" />
         
-        <Card className="shadow-xl">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold">What's your current fitness level?</CardTitle>
-            <CardDescription className="text-lg">This helps us tailor the perfect workout intensity for you</CardDescription>
+        <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-sm animate-fade-in-up">
+          <CardHeader className="text-center pb-6 pt-8">
+            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+              What's your current fitness level?
+            </CardTitle>
+            <CardDescription className="text-xl text-gray-600 font-medium">
+              This helps us tailor the perfect workout intensity for you
+            </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
