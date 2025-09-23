@@ -1,36 +1,134 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FitAI Coach - AI Fitness App Onboarding
+
+A comprehensive onboarding flow for an AI-powered fitness application built with Next.js 14, TypeScript, and Tailwind CSS.
+
+## Features
+
+### 🎯 Complete Onboarding Experience
+- **7-step guided flow** with progress tracking
+- **Personal information collection** with metric/imperial unit support
+- **Fitness level assessment** with visual indicators
+- **Goals selection** with multiple choice and custom input
+- **Preferences & availability** configuration
+- **Health & safety** information gathering
+- **Setup completion** with profile summary
+
+### 🛠️ Technical Features
+- **Next.js 14** with App Router and TypeScript
+- **Tailwind CSS** for modern, responsive styling
+- **Context API** for state management
+- **Form validation** with error handling
+- **localStorage persistence** for data backup
+- **Mobile-first responsive design**
+- **Smooth animations** and transitions
+- **Accessibility features** built-in
+
+### 📱 User Experience
+- Clean, modern interface with plenty of white space
+- Consistent blue/teal color scheme
+- Engaging icons and visual elements
+- Intuitive navigation with Next/Back/Skip options
+- Progress indicator showing current step
+- Motivational copy and encouraging language
+- Estimated completion time display
 
 ## Getting Started
 
-First, run the development server:
-
+1. Install dependencies:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Run the development server:
+```bash
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Open [http://localhost:3000](http://localhost:3000) to see the onboarding flow
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Structure
 
-## Learn More
+```
+app/
+├── components/
+│   ├── onboarding/
+│   │   ├── WelcomeScreen.tsx          # Step 1: Welcome & introduction
+│   │   ├── PersonalInfoScreen.tsx     # Step 2: Personal information
+│   │   ├── FitnessLevelScreen.tsx     # Step 3: Fitness level assessment
+│   │   ├── GoalsScreen.tsx            # Step 4: Goals selection
+│   │   ├── PreferencesScreen.tsx      # Step 5: Preferences & availability
+│   │   ├── HealthSafetyScreen.tsx     # Step 6: Health & safety
+│   │   └── SetupCompleteScreen.tsx    # Step 7: Setup completion
+│   ├── ProgressStepper.tsx            # Progress indicator component
+│   └── OnboardingFlow.tsx             # Main flow controller
+├── contexts/
+│   └── OnboardingContext.tsx          # State management context
+├── globals.css                        # Global styles and animations
+├── layout.tsx                         # Root layout
+└── page.tsx                           # Main page with onboarding
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Onboarding Flow Details
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Step 1: Welcome Screen
+- App branding and logo
+- Value proposition with key benefits
+- "Get Started" and "Skip" options
+- Time estimate display
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Step 2: Personal Information
+- Name, age, gender inputs
+- Height and weight with unit toggles
+- Form validation with error states
+- Metric/Imperial system support
 
-## Deploy on Vercel
+### Step 3: Fitness Level Assessment
+- Visual selection cards for fitness levels
+- Beginner, Intermediate, Advanced, Athlete options
+- Detailed descriptions for each level
+- Encouraging messaging
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Step 4: Goals Selection
+- Multiple goal selection with visual icons
+- Predefined goals: Weight loss, muscle building, endurance, etc.
+- Custom goal input option
+- Selected goals summary
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Step 5: Preferences & Availability
+- Workout duration preferences
+- Weekly calendar for available days
+- Preferred workout time selection
+- Equipment availability options
+
+### Step 6: Health & Safety
+- Health conditions questionnaire
+- Terms of service and privacy policy agreements
+- Safety disclaimers and recommendations
+- Required legal checkboxes
+
+### Step 7: Setup Complete
+- Success animation and celebration
+- Complete profile summary
+- Motivational messaging
+- "Start First Workout" action button
+
+## Customization
+
+The onboarding flow is highly customizable:
+
+- **Colors**: Update the gradient colors in Tailwind classes
+- **Content**: Modify text, icons, and messaging in each screen
+- **Validation**: Adjust form validation rules in each component
+- **Steps**: Add or remove steps by updating the context and flow
+- **Styling**: Customize the design system in `globals.css`
+
+## Browser Support
+
+- Modern browsers with ES6+ support
+- Mobile responsive design
+- Touch-friendly interface
+- Accessibility compliant
+
+## License
+
+This project is open source and available under the MIT License.
