@@ -1,26 +1,76 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Play, ExternalLink } from 'lucide-react';
+import { Play, ExternalLink, Search, Loader2 } from 'lucide-react';
 
 interface VideoPlayerProps {
   videoUrl?: string;
   videoThumbnail?: string;
   exerciseName: string;
   className?: string;
+  autoSearch?: boolean; // Whether to automatically search for videos if none provided
+}
+
+interface YouTubeVideo {
+  id: string;
+  title: string;
+  description: string;
+  thumbnailUrl: string;
+  channelTitle: string;
+  duration: string;
+  viewCount: string;
+  publishedAt: string;
+  url: string;
 }
 
 export default function VideoPlayer({ 
   videoUrl, 
   videoThumbnail, 
   exerciseName, 
-  className = "" 
+  className = "",
+  autoSearch = false
 }: VideoPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [searchResults, setSearchResults] = useState<YouTubeVideo[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<YouTubeVideo | null>(null);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
-  if (!videoUrl) {
+  // Auto-search for videos if enabled and no video URL provided
+  useEffect(() => {
+    if (autoSearch && !videoUrl && exerciseName) {
+      searchForVideos();
+    }
+  }, [autoSearch, videoUrl, exerciseName]);
+
+  const searchForVideos = async () => {
+    setIsSearching(true);
+    try {
+      const response = await fetch(`/api/youtube/search?exercise=${encodeURIComponent(exerciseName)}&maxResults=5&duration=short`);
+      const data = await response.json();
+      
+      if (data.success && data.data.videos.length > 0) {
+        setSearchResults(data.data.videos);
+        setShowSearchResults(true);
+      }
+    } catch (error) {
+      console.error('Error searching for videos:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleVideoSelect = (video: YouTubeVideo) => {
+    setSelectedVideo(video);
+    setShowSearchResults(false);
+  };
+
+  // Use selected video or fallback to provided video
+  const currentVideo = selectedVideo || (videoUrl ? { url: videoUrl, thumbnailUrl: videoThumbnail } : null);
+
+  if (!currentVideo && !showSearchResults) {
     return null;
   }
 
@@ -31,23 +81,101 @@ export default function VideoPlayer({
     return match && match[2].length === 11 ? match[2] : null;
   };
 
-  const videoId = getYouTubeVideoId(videoUrl);
+  const videoId = currentVideo ? getYouTubeVideoId(currentVideo.url) : null;
   
+  // Show search results if no video is selected
+  if (showSearchResults) {
+    return (
+      <div className={`${className}`}>
+        <Card>
+          <CardContent className="p-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h4 className="font-medium text-sm">Choose a video for {exerciseName}</h4>
+                <Button
+                  onClick={() => setShowSearchResults(false)}
+                  variant="outline"
+                  size="sm"
+                >
+                  Cancel
+                </Button>
+              </div>
+              
+              {isSearching ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                  <span className="text-sm text-muted-foreground">Searching for videos...</span>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {searchResults.map((video) => (
+                    <div
+                      key={video.id}
+                      onClick={() => handleVideoSelect(video)}
+                      className="flex items-start space-x-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                    >
+                      <img
+                        src={video.thumbnailUrl}
+                        alt={video.title}
+                        className="w-16 h-12 object-cover rounded"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium line-clamp-2">{video.title}</p>
+                        <p className="text-xs text-muted-foreground">{video.channelTitle}</p>
+                        <p className="text-xs text-muted-foreground">{video.duration} • {video.viewCount}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              <Button
+                onClick={searchForVideos}
+                variant="outline"
+                size="sm"
+                className="w-full"
+                disabled={isSearching}
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Search Again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!videoId) {
     return (
       <div className={`${className}`}>
         <Card>
           <CardContent className="p-4">
-            <div className="flex items-center justify-center space-x-2 text-muted-foreground">
-              <ExternalLink className="h-4 w-4" />
-              <a 
-                href={videoUrl} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-sm hover:text-primary transition-colors"
+            <div className="space-y-4">
+              <div className="flex items-center justify-center space-x-2 text-muted-foreground">
+                <ExternalLink className="h-4 w-4" />
+                <span className="text-sm">No video available for {exerciseName}</span>
+              </div>
+              
+              <Button
+                onClick={searchForVideos}
+                variant="outline"
+                size="sm"
+                className="w-full"
+                disabled={isSearching}
               >
-                Watch {exerciseName} demonstration
-              </a>
+                {isSearching ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Searching...
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4 mr-2" />
+                    Search YouTube
+                  </>
+                )}
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -56,7 +184,7 @@ export default function VideoPlayer({
   }
 
   // Generate YouTube thumbnail URL
-  const thumbnailUrl = videoThumbnail || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+  const thumbnailUrl = currentVideo?.thumbnailUrl || `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
   
   // Generate YouTube embed URL
   const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
@@ -66,7 +194,7 @@ export default function VideoPlayer({
   };
 
   const handleOpenInNewTab = () => {
-    window.open(videoUrl, '_blank', 'noopener,noreferrer');
+    window.open(currentVideo?.url, '_blank', 'noopener,noreferrer');
   };
 
   const handleVideoError = () => {
@@ -163,7 +291,26 @@ export default function VideoPlayer({
                 <ExternalLink className="h-4 w-4" />
               </Button>
             </div>
-            <div className="mt-2">
+            <div className="mt-2 space-y-2">
+              <Button
+                onClick={searchForVideos}
+                variant="outline"
+                size="sm"
+                className="w-full"
+                disabled={isSearching}
+              >
+                {isSearching ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Searching...
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4 mr-2" />
+                    Find Better Video
+                  </>
+                )}
+              </Button>
               <Button
                 onClick={searchExerciseOnYouTube}
                 variant="outline"

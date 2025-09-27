@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { WorkoutGenerationRequest, WorkoutGenerationResponse, WorkoutPlan } from '@/lib/types/workout';
+import { youtubeAPI } from '@/lib/youtube-api';
 
 // Retry function with exponential backoff
 async function retryWithBackoff<T>(
@@ -26,6 +27,41 @@ async function retryWithBackoff<T>(
     }
   }
   throw new Error('Max retries exceeded');
+}
+
+// Function to enhance exercises with YouTube videos
+async function enhanceExercisesWithVideos(exercises: any[]): Promise<any[]> {
+  if (!process.env.YOUTUBE_API_KEY || exercises.length === 0) {
+    return exercises;
+  }
+
+  const enhancedExercises = await Promise.all(
+    exercises.map(async (exercise) => {
+      try {
+        // Search for relevant videos
+        const searchResult = await youtubeAPI.searchExerciseVideos(
+          exercise.name,
+          1, // Get only the best match
+          'short' // Prefer shorter videos for exercises
+        );
+
+        if (searchResult.videos.length > 0) {
+          const video = searchResult.videos[0];
+          return {
+            ...exercise,
+            videoUrl: video.url,
+            videoThumbnail: video.thumbnailUrl
+          };
+        }
+      } catch (error) {
+        console.warn(`Failed to find YouTube video for exercise: ${exercise.name}`, error);
+      }
+
+      return exercise;
+    })
+  );
+
+  return enhancedExercises;
 }
 
 
@@ -149,6 +185,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Enhance exercises with YouTube videos
+    const enhancedDays = await Promise.all(
+      (workoutPlanData.days || []).map(async (day: any) => {
+        const enhancedWarmup = await enhanceExercisesWithVideos(day.warmup || []);
+        const enhancedExercises = await enhanceExercisesWithVideos(day.exercises || []);
+        const enhancedCooldown = await enhanceExercisesWithVideos(day.cooldown || []);
+
+        return {
+          ...day,
+          warmup: enhancedWarmup,
+          exercises: enhancedExercises,
+          cooldown: enhancedCooldown
+        };
+      })
+    );
+
     // Create the workout plan object
     const workoutPlan: WorkoutPlan = {
       id: `workout-${Date.now()}`,
@@ -157,7 +209,7 @@ export async function POST(request: NextRequest) {
       duration: workoutPlanData.duration || 4,
       difficulty: workoutPlanData.difficulty || userProfile.fitnessLevel,
       frequency: workoutPlanData.frequency || userProfile.availableDays.length,
-      days: workoutPlanData.days || [],
+      days: enhancedDays,
       goals: userProfile.goals,
       equipment: [userProfile.equipment],
       createdAt: new Date(),
@@ -214,7 +266,7 @@ WORKOUT PLAN REQUIREMENTS:
 7. Provide detailed step-by-step instructions
 8. Include proper rest periods (30-90 seconds between sets)
 9. Consider age-appropriate modifications for ${userProfile.age} years old
-10. Include YouTube video URLs for exercise demonstrations
+10. Focus on clear exercise descriptions (YouTube videos will be added automatically)
 
 EXERCISE GUIDELINES:
 - For beginners: 2-3 sets, 8-12 reps, focus on form
@@ -253,9 +305,7 @@ Return ONLY valid JSON with this exact structure:
             "Step 3: Return to start",
             "Step 4: Repeat"
           ],
-          "difficulty": "${userProfile.fitnessLevel}",
-          "videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID",
-          "videoThumbnail": "https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg"
+          "difficulty": "${userProfile.fitnessLevel}"
         }
       ],
       "exercises": [
@@ -277,9 +327,7 @@ Return ONLY valid JSON with this exact structure:
             "Form tip 1",
             "Form tip 2"
           ],
-          "difficulty": "${userProfile.fitnessLevel}",
-          "videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID",
-          "videoThumbnail": "https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg"
+          "difficulty": "${userProfile.fitnessLevel}"
         }
       ],
       "cooldown": [
@@ -312,7 +360,7 @@ CRITICAL REQUIREMENTS:
 - Ensure all JSON keys are properly quoted with double quotes
 - No trailing commas in arrays or objects
 - All string values must be in double quotes
-- Use real YouTube video IDs for demonstrations
+- Focus on clear, descriptive exercise names for automatic video matching
 - Ensure all exercises match the user's fitness level
 - Include 4-8 exercises per workout day
 - Vary workout focus (upper body, lower body, cardio, full body)
@@ -343,9 +391,7 @@ EXAMPLE VALID JSON FORMAT:
           "equipment": ["none"],
           "muscleGroups": ["shoulders"],
           "instructions": ["Stand with feet shoulder-width apart", "Extend arms out to sides"],
-          "difficulty": "beginner",
-          "videoUrl": "https://www.youtube.com/watch?v=1p3MQD7x0-s",
-          "videoThumbnail": "https://img.youtube.com/vi/1p3MQD7x0-s/maxresdefault.jpg"
+          "difficulty": "beginner"
         }
       ],
       "exercises": [],

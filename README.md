@@ -23,6 +23,7 @@ A comprehensive AI-powered fitness application with personalized workout plan ge
 - **Smooth animations** and transitions
 - **Accessibility features** built-in
 - **Gemini Flash 2.5** AI integration for workout generation
+- **YouTube Data API v3** integration for exercise videos
 - **RESTful API** for workout plan creation
 - **TypeScript types** for type safety
 
@@ -43,11 +44,18 @@ npm install
 ```
 
 2. Set up environment variables:
-Create a `.env.local` file in the root directory and add your Gemini API key:
+Create a `.env.local` file in the root directory and add your API keys:
 ```bash
-GEMINI_API_KEY=your_gemini_api_key_here
+# OpenAI API (for workout generation)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# YouTube Data API v3 (for exercise videos)
+YOUTUBE_API_KEY=your_youtube_api_key_here
 ```
-Get your API key from: https://makersuite.google.com/app/apikey
+
+Get your API keys from:
+- OpenAI: https://platform.openai.com/api-keys
+- YouTube: https://console.developers.google.com/
 
 3. Run the development server:
 ```bash
@@ -55,6 +63,27 @@ npm run dev
 ```
 
 4. Open [http://localhost:3000](http://localhost:3000) to see the onboarding flow
+
+## YouTube Integration
+
+The app includes comprehensive YouTube Data API v3 integration for exercise videos:
+
+### Features
+- **Automatic Video Discovery**: Finds relevant exercise demonstration videos
+- **Smart Video Selection**: Searches for high-quality, short-duration videos
+- **Interactive Video Player**: Embedded YouTube player with fallback options
+- **Manual Search**: Users can search for alternative videos
+- **Video Metadata**: Displays titles, descriptions, thumbnails, and view counts
+
+### Demo Page
+Visit [http://localhost:3000/youtube-demo](http://localhost:3000/youtube-demo) to test the YouTube integration.
+
+### API Endpoints
+- `GET /api/youtube/search` - Search for exercise videos
+- `GET /api/youtube/video` - Get video details
+- `GET /api/youtube/test` - Test API connection
+
+For detailed setup instructions, see [YOUTUBE_INTEGRATION.md](./YOUTUBE_INTEGRATION.md).
 
 ## Project Structure
 

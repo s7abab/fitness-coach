@@ -122,6 +122,7 @@ export default function WorkoutPlanDisplay({ workoutPlan, onRegenerate, isRegene
                 videoThumbnail={exercise.videoThumbnail}
                 exerciseName={exercise.name}
                 className="mb-4"
+                autoSearch={true}
               />
 
               <div className="space-y-3">
