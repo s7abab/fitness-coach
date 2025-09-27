@@ -1,6 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { WorkoutGenerationRequest, WorkoutGenerationResponse, WorkoutPlan, WorkoutDay } from '@/lib/types/workout';
-import { youtubeAPI } from '@/lib/youtube-api';
+import { NextRequest, NextResponse } from "next/server";
+import {
+  WorkoutGenerationRequest,
+  WorkoutGenerationResponse,
+  WorkoutPlan,
+  WorkoutDay,
+} from "@/lib/types/workout";
+import { youtubeAPI } from "@/lib/youtube-api";
 
 // Retry function with exponential backoff
 async function retryWithBackoff<T>(
@@ -14,96 +19,109 @@ async function retryWithBackoff<T>(
     } catch (error: unknown) {
       const isLastAttempt = attempt === maxRetries - 1;
       const errorObj = error as { status?: number; message?: string };
-      const isOverloadError = errorObj.status === 503 || errorObj.message?.includes('overloaded');
-      
+      const isOverloadError =
+        errorObj.status === 503 || errorObj.message?.includes("overloaded");
+
       if (isLastAttempt || !isOverloadError) {
         throw error;
       }
-      
+
       // Exponential backoff: 1s, 2s, 4s
       const delay = baseDelay * Math.pow(2, attempt);
       console.log(`Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
-  throw new Error('Max retries exceeded');
+  throw new Error("Max retries exceeded");
 }
 
 // Advanced JSON repair function
 function repairJsonString(jsonString: string): string {
   let repaired = jsonString;
-  
+
   // Remove any non-JSON content before the first {
-  const firstBrace = repaired.indexOf('{');
+  const firstBrace = repaired.indexOf("{");
   if (firstBrace > 0) {
     repaired = repaired.substring(firstBrace);
   }
-  
+
   // Remove any content after the last }
-  const lastBrace = repaired.lastIndexOf('}');
+  const lastBrace = repaired.lastIndexOf("}");
   if (lastBrace !== -1 && lastBrace < repaired.length - 1) {
     repaired = repaired.substring(0, lastBrace + 1);
   }
-  
+
   // Fix common JSON issues
   repaired = repaired
     // Remove trailing commas before closing brackets/braces
-    .replace(/,(\s*[}\]])/g, '$1')
+    .replace(/,(\s*[}\]])/g, "$1")
     // Fix unquoted keys
     .replace(/(\w+):/g, '"$1":')
     // Fix unquoted string values (but not numbers, booleans, null)
-    .replace(/:\s*([a-zA-Z_][a-zA-Z0-9_\s-]*?)(\s*[,}\]])/g, (match, value, ending) => {
-      // Don't quote if it's a number, boolean, or null
-      if (/^\d+(\.\d+)?$/.test(value.trim()) || 
-          value.trim() === 'true' || 
-          value.trim() === 'false' || 
-          value.trim() === 'null') {
-        return `: ${value.trim()}${ending}`;
+    .replace(
+      /:\s*([a-zA-Z_][a-zA-Z0-9_\s-]*?)(\s*[,}\]])/g,
+      (match: string, value: string, ending: string) => {
+        // Don't quote if it's a number, boolean, or null
+        if (
+          /^\d+(\.\d+)?$/.test(value.trim()) ||
+          value.trim() === "true" ||
+          value.trim() === "false" ||
+          value.trim() === "null"
+        ) {
+          return `: ${value.trim()}${ending}`;
+        }
+        return `: "${value.trim()}"${ending}`;
       }
-      return `: "${value.trim()}"${ending}`;
-    })
+    )
     // Fix unquoted string values at the end of objects/arrays
-    .replace(/:\s*([a-zA-Z_][a-zA-Z0-9_\s-]*?)(\s*[}\]])/g, (match, value, ending) => {
-      if (/^\d+(\.\d+)?$/.test(value.trim()) || 
-          value.trim() === 'true' || 
-          value.trim() === 'false' || 
-          value.trim() === 'null') {
-        return `: ${value.trim()}${ending}`;
+    .replace(
+      /:\s*([a-zA-Z_][a-zA-Z0-9_\s-]*?)(\s*[}\]])/g,
+      (match: string, value: string, ending: string) => {
+        if (
+          /^\d+(\.\d+)?$/.test(value.trim()) ||
+          value.trim() === "true" ||
+          value.trim() === "false" ||
+          value.trim() === "null"
+        ) {
+          return `: ${value.trim()}${ending}`;
+        }
+        return `: "${value.trim()}"${ending}`;
       }
-      return `: "${value.trim()}"${ending}`;
-    })
+    )
     // Remove extra spaces around colons
-    .replace(/:\s+/g, ': ')
+    .replace(/:\s+/g, ": ")
     // Remove extra spaces around commas
-    .replace(/\s*,\s*/g, ', ')
+    .replace(/\s*,\s*/g, ", ")
     // Fix missing commas between array elements
-    .replace(/\]\s*\[/g, '], [')
+    .replace(/\]\s*\[/g, "], [")
     // Fix missing commas between object properties
-    .replace(/}\s*{/g, '}, {')
+    .replace(/}\s*{/g, "}, {")
     // Remove trailing commas one more time
-    .replace(/,(\s*[}\]])/g, '$1');
-  
+    .replace(/,(\s*[}\]])/g, "$1");
+
   // Try to balance brackets and braces
   const openBraces = (repaired.match(/\{/g) || []).length;
   const closeBraces = (repaired.match(/\}/g) || []).length;
   const openBrackets = (repaired.match(/\[/g) || []).length;
   const closeBrackets = (repaired.match(/\]/g) || []).length;
-  
+
   // Close incomplete arrays
   for (let i = 0; i < openBrackets - closeBrackets; i++) {
-    repaired += ']';
+    repaired += "]";
   }
-  
+
   // Close incomplete objects
   for (let i = 0; i < openBraces - closeBraces; i++) {
-    repaired += '}';
+    repaired += "}";
   }
-  
+
   return repaired;
 }
 
 // Function to enhance exercises with YouTube videos
-async function enhanceExercisesWithVideos<T extends { name: string }>(exercises: T[]): Promise<T[]> {
+async function enhanceExercisesWithVideos<T extends { name: string }>(
+  exercises: T[]
+): Promise<T[]> {
   if (!process.env.YOUTUBE_API_KEY || exercises.length === 0) {
     return exercises;
   }
@@ -115,7 +133,7 @@ async function enhanceExercisesWithVideos<T extends { name: string }>(exercises:
         const searchResult = await youtubeAPI.searchExerciseVideos(
           exercise.name,
           1, // Get only the best match
-          'short' // Prefer shorter videos for exercises
+          "short" // Prefer shorter videos for exercises
         );
 
         if (searchResult.videos.length > 0) {
@@ -123,11 +141,14 @@ async function enhanceExercisesWithVideos<T extends { name: string }>(exercises:
           return {
             ...exercise,
             videoUrl: video.url,
-            videoThumbnail: video.thumbnailUrl
+            videoThumbnail: video.thumbnailUrl,
           };
         }
       } catch (error) {
-        console.warn(`Failed to find YouTube video for exercise: ${exercise.name}`, error);
+        console.warn(
+          `Failed to find YouTube video for exercise: ${exercise.name}`,
+          error
+        );
       }
 
       return exercise as T;
@@ -137,17 +158,16 @@ async function enhanceExercisesWithVideos<T extends { name: string }>(exercises:
   return enhancedExercises;
 }
 
-
 export async function POST(request: NextRequest) {
-  let userProfile: WorkoutGenerationRequest['userProfile'] | null = null;
-  
+  let userProfile: WorkoutGenerationRequest["userProfile"] | null = null;
+
   try {
     const body: WorkoutGenerationRequest = await request.json();
     userProfile = body.userProfile;
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
-        { success: false, error: 'OpenAI API key not configured' },
+        { success: false, error: "OpenAI API key not configured" },
         { status: 500 }
       );
     }
@@ -157,28 +177,32 @@ export async function POST(request: NextRequest) {
 
     // Generate workout plan using OpenAI GPT-4o-mini with retry logic
     const result = await retryWithBackoff(async () => {
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            {
-              role: 'system',
-              content: 'You are a professional fitness trainer and nutritionist with 15+ years of experience. Create comprehensive, personalized workout plans. Always respond with valid JSON only.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 8000,
-        }),
-      });
+      const response = await fetch(
+        "https://api.openai.com/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "You are a professional fitness trainer and nutritionist with 15+ years of experience. Create comprehensive, personalized workout plans. Always respond with valid JSON only.",
+              },
+              {
+                role: "user",
+                content: prompt,
+              },
+            ],
+            temperature: 0.7,
+            max_tokens: 8000,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -187,146 +211,166 @@ export async function POST(request: NextRequest) {
 
       return await response.json();
     });
-    
+
     const text = result.choices[0]?.message?.content;
 
     // Parse the JSON response from OpenAI
     let workoutPlanData;
     try {
       if (!text) {
-        throw new Error('No content in OpenAI response');
+        throw new Error("No content in OpenAI response");
       }
-      
-      console.log('Raw AI response length:', text.length);
-      console.log('Raw AI response preview:', text.substring(0, 500) + '...');
-      
+
+      console.log("Raw AI response length:", text.length);
+      console.log("Raw AI response preview:", text.substring(0, 500) + "...");
+
       // Try to find and extract JSON from the response
       let jsonString = text.trim();
-      
+
       // Remove any markdown code blocks
-      jsonString = jsonString.replace(/```json\s*/g, '').replace(/```\s*/g, '');
-      
+      jsonString = jsonString.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+
       // Try to find JSON object boundaries more precisely
-      const jsonStart = jsonString.indexOf('{');
-      const jsonEnd = jsonString.lastIndexOf('}');
-      
+      const jsonStart = jsonString.indexOf("{");
+      const jsonEnd = jsonString.lastIndexOf("}");
+
       if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
         jsonString = jsonString.substring(jsonStart, jsonEnd + 1);
       }
-      
+
       // Check if the JSON appears to be truncated
       const openBraces = (jsonString.match(/\{/g) || []).length;
       const closeBraces = (jsonString.match(/\}/g) || []).length;
       const openBrackets = (jsonString.match(/\[/g) || []).length;
       const closeBrackets = (jsonString.match(/\]/g) || []).length;
-      
+
       if (openBraces > closeBraces || openBrackets > closeBrackets) {
-        console.warn('JSON appears to be truncated, attempting to fix...');
-        
+        console.warn("JSON appears to be truncated, attempting to fix...");
+
         // Try to close incomplete structures
         let fixedJson = jsonString;
-        
+
         // Close incomplete arrays
         for (let i = 0; i < openBrackets - closeBrackets; i++) {
-          fixedJson += ']';
+          fixedJson += "]";
         }
-        
+
         // Close incomplete objects
         for (let i = 0; i < openBraces - closeBraces; i++) {
-          fixedJson += '}';
+          fixedJson += "}";
         }
-        
+
         jsonString = fixedJson;
       }
-      
+
       // Use the advanced repair function
       jsonString = repairJsonString(jsonString);
-      
-      console.log('Cleaned JSON string length:', jsonString.length);
-      console.log('Cleaned JSON string preview:', jsonString.substring(0, 500) + '...');
-      
+
+      console.log("Cleaned JSON string length:", jsonString.length);
+      console.log(
+        "Cleaned JSON string preview:",
+        jsonString.substring(0, 500) + "..."
+      );
+
       workoutPlanData = JSON.parse(jsonString);
     } catch (parseError: unknown) {
-      console.error('Error parsing OpenAI response:', parseError);
-      console.error('Raw response length:', text.length);
-      console.error('Raw response preview:', text.substring(0, 1000));
-      
+      console.error("Error parsing OpenAI response:", parseError);
+      console.error("Raw response length:", text.length);
+      console.error("Raw response preview:", text.substring(0, 1000));
+
       // Try a more aggressive JSON extraction and repair
       try {
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           let rawJson = jsonMatch[0];
-          console.log('Attempting to parse raw JSON match length:', rawJson.length);
-          
+          console.log(
+            "Attempting to parse raw JSON match length:",
+            rawJson.length
+          );
+
           // Use the advanced repair function
           rawJson = repairJsonString(rawJson);
-          
-          console.log('Repaired JSON preview:', rawJson.substring(0, 500) + '...');
+
+          console.log(
+            "Repaired JSON preview:",
+            rawJson.substring(0, 500) + "..."
+          );
           workoutPlanData = JSON.parse(rawJson);
         } else {
-          throw new Error('No JSON object found in response');
+          throw new Error("No JSON object found in response");
         }
       } catch (secondParseError: unknown) {
-        console.error('Second parse attempt failed:', secondParseError);
-        
+        console.error("Second parse attempt failed:", secondParseError);
+
         // Try a third attempt with more aggressive repair
         try {
-          console.log('Attempting third parse with aggressive repair...');
+          console.log("Attempting third parse with aggressive repair...");
           let aggressiveRepair = text;
-          
+
           // Extract just the JSON part
-          const jsonStart = aggressiveRepair.indexOf('{');
-          const jsonEnd = aggressiveRepair.lastIndexOf('}');
-          
+          const jsonStart = aggressiveRepair.indexOf("{");
+          const jsonEnd = aggressiveRepair.lastIndexOf("}");
+
           if (jsonStart !== -1 && jsonEnd !== -1) {
-            aggressiveRepair = aggressiveRepair.substring(jsonStart, jsonEnd + 1);
-          }
-          
-          // More aggressive repairs
-          aggressiveRepair = aggressiveRepair
-            .replace(/,(\s*[}\]])/g, '$1')  // Remove trailing commas
-            .replace(/(\w+):/g, '"$1":')  // Quote all keys
-            .replace(/:\s*([a-zA-Z_][a-zA-Z0-9_\s-]*?)(\s*[,}\]])/g, (match, value, ending) => {
-              const trimmed = value.trim();
-              if (/^\d+(\.\d+)?$/.test(trimmed) || trimmed === 'true' || trimmed === 'false' || trimmed === 'null') {
-                return `: ${trimmed}${ending}`;
-              }
-              return `: "${trimmed}"${ending}`;
-            })
-            .replace(/,(\s*[}\]])/g, '$1');  // Final cleanup
-          
-          console.log('Aggressive repair preview:', aggressiveRepair.substring(0, 500) + '...');
-          workoutPlanData = JSON.parse(aggressiveRepair);
-        } catch (thirdParseError: unknown) {
-          console.error('Third parse attempt failed:', thirdParseError);
-          
-          // Try to generate a fallback workout plan
-          try {
-            console.log('Attempting to generate fallback workout plan...');
-            const fallbackPlan = await generateFallbackWorkoutPlan(userProfile);
-            return NextResponse.json({
-              success: true,
-              workoutPlan: fallbackPlan,
-              isFallback: true,
-              message: 'Generated a simplified workout plan due to parsing issues with the full plan.'
-            });
-          } catch (fallbackError) {
-            console.error('Fallback generation failed:', fallbackError);
-            return NextResponse.json(
-              { 
-                success: false, 
-                error: 'Failed to parse workout plan from AI response. The AI response may be too long or malformed.',
-                debug: {
-                  rawResponseLength: text.length,
-                  rawResponsePreview: text.substring(0, 1000),
-                  parseError: parseError instanceof Error ? parseError.message : String(parseError),
-                  secondParseError: secondParseError instanceof Error ? secondParseError.message : String(secondParseError),
-                  thirdParseError: thirdParseError instanceof Error ? thirdParseError.message : String(thirdParseError)
-                }
-              },
-              { status: 500 }
+            aggressiveRepair = aggressiveRepair.substring(
+              jsonStart,
+              jsonEnd + 1
             );
           }
+
+          // More aggressive repairs
+          aggressiveRepair = aggressiveRepair
+            .replace(/,(\s*[}\]])/g, "$1") // Remove trailing commas
+            .replace(/(\w+):/g, '"$1":') // Quote all keys
+            .replace(
+              /:\s*([a-zA-Z_][a-zA-Z0-9_\s-]*?)(\s*[,}\]])/g,
+              (match: string, value: string, ending: string) => {
+                const trimmed = value.trim();
+                if (
+                  /^\d+(\.\d+)?$/.test(trimmed) ||
+                  trimmed === "true" ||
+                  trimmed === "false" ||
+                  trimmed === "null"
+                ) {
+                  return `: ${trimmed}${ending}`;
+                }
+                return `: "${trimmed}"${ending}`;
+              }
+            )
+            .replace(/,(\s*[}\]])/g, "$1"); // Final cleanup
+
+          console.log(
+            "Aggressive repair preview:",
+            aggressiveRepair.substring(0, 500) + "..."
+          );
+          workoutPlanData = JSON.parse(aggressiveRepair);
+        } catch (thirdParseError: unknown) {
+          console.error("Third parse attempt failed:", thirdParseError);
+
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                "Failed to parse workout plan from AI response. The AI response may be too long or malformed.",
+              debug: {
+                rawResponseLength: text.length,
+                rawResponsePreview: text.substring(0, 1000),
+                parseError:
+                  parseError instanceof Error
+                    ? parseError.message
+                    : String(parseError),
+                secondParseError:
+                  secondParseError instanceof Error
+                    ? secondParseError.message
+                    : String(secondParseError),
+                thirdParseError:
+                  thirdParseError instanceof Error
+                    ? thirdParseError.message
+                    : String(thirdParseError),
+              },
+            },
+            { status: 500 }
+          );
         }
       }
     }
@@ -341,15 +385,21 @@ export async function POST(request: NextRequest) {
 
     const enhancedDays = await Promise.all(
       (workoutPlanData.days || []).map(async (day: DayLike) => {
-        const enhancedWarmup = await enhanceExercisesWithVideos(day.warmup || []);
-        const enhancedExercises = await enhanceExercisesWithVideos(day.exercises || []);
-        const enhancedCooldown = await enhanceExercisesWithVideos(day.cooldown || []);
+        const enhancedWarmup = await enhanceExercisesWithVideos(
+          day.warmup || []
+        );
+        const enhancedExercises = await enhanceExercisesWithVideos(
+          day.exercises || []
+        );
+        const enhancedCooldown = await enhanceExercisesWithVideos(
+          day.cooldown || []
+        );
 
         return {
           ...day,
           warmup: enhancedWarmup,
           exercises: enhancedExercises,
-          cooldown: enhancedCooldown
+          cooldown: enhancedCooldown,
         };
       })
     );
@@ -357,8 +407,11 @@ export async function POST(request: NextRequest) {
     // Create the workout plan object
     const workoutPlan: WorkoutPlan = {
       id: `workout-${Date.now()}`,
-      name: workoutPlanData.name || `${userProfile.name}'s Personal Workout Plan`,
-      description: workoutPlanData.description || 'A personalized workout plan designed for your fitness goals',
+      name:
+        workoutPlanData.name || `${userProfile.name}'s Personal Workout Plan`,
+      description:
+        workoutPlanData.description ||
+        "A personalized workout plan designed for your fitness goals",
       duration: workoutPlanData.duration || 4,
       difficulty: workoutPlanData.difficulty || userProfile.fitnessLevel,
       frequency: workoutPlanData.frequency || userProfile.availableDays.length,
@@ -376,24 +429,29 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(response_data);
   } catch (error: unknown) {
-    console.error('Error generating workout plan:', error);
-    
+    console.error("Error generating workout plan:", error);
+
     const errorObj = error as { status?: number; message?: string };
-    
+
     return NextResponse.json(
-      { 
-        success: false, 
-        error: errorObj.status === 503 || errorObj.message?.includes('rate limit')
-          ? 'AI service is temporarily overloaded. Please try again in a few minutes.'
-          : 'Failed to generate workout plan. Please try again later.'
+      {
+        success: false,
+        error:
+          errorObj.status === 503 || errorObj.message?.includes("rate limit")
+            ? "AI service is temporarily overloaded. Please try again in a few minutes."
+            : "Failed to generate workout plan. Please try again later.",
       },
       { status: errorObj.status || 500 }
     );
   }
 }
 
-function createWorkoutPrompt(userProfile: WorkoutGenerationRequest['userProfile']): string {
-  return `You are a professional fitness trainer creating a personalized workout plan. Generate a comprehensive ${userProfile.availableDays.length}-day workout plan based on the user's profile.
+function createWorkoutPrompt(
+  userProfile: WorkoutGenerationRequest["userProfile"]
+): string {
+  return `You are a professional fitness trainer creating a personalized workout plan. Generate a comprehensive ${
+    userProfile.availableDays.length
+  }-day workout plan based on the user's profile.
 
 USER PROFILE:
 - Name: ${userProfile.name}
@@ -402,19 +460,21 @@ USER PROFILE:
 - Height: ${userProfile.height} cm
 - Weight: ${userProfile.weight} kg
 - Fitness Level: ${userProfile.fitnessLevel}
-- Goals: ${userProfile.goals.join(', ')}
+- Goals: ${userProfile.goals.join(", ")}
 - Workout Duration: ${userProfile.workoutDuration} minutes per session
-- Available Days: ${userProfile.availableDays.join(', ')}
+- Available Days: ${userProfile.availableDays.join(", ")}
 - Preferred Workout Time: ${userProfile.workoutTime}
 - Equipment Available: ${userProfile.equipment}
-- Health Conditions: ${userProfile.healthConditions || 'None reported'}
- - Split Preference: ${userProfile.splitPreference || 'auto (you choose the optimal split)'}
+- Health Conditions: ${userProfile.healthConditions || "None reported"}
+ - Split Preference: ${
+   userProfile.splitPreference || "auto (you choose the optimal split)"
+ }
 
 WORKOUT PLAN REQUIREMENTS:
 1. Create exactly ${userProfile.availableDays.length} workout days
 2. Each workout must be ${userProfile.workoutDuration} minutes total
 3. Design exercises appropriate for ${userProfile.fitnessLevel} level
-4. Focus on achieving these goals: ${userProfile.goals.join(', ')}
+4. Focus on achieving these goals: ${userProfile.goals.join(", ")}
 5. Use only this equipment: ${userProfile.equipment}
 6. Include 5-10 minute warm-up and 5-10 minute cool-down
 7. Provide detailed step-by-step instructions
@@ -528,7 +588,7 @@ CRITICAL REQUIREMENTS:
 - Make exercises progressive and challenging
 - Include proper warm-up and cool-down for each day
 - Use only the specified equipment: ${userProfile.equipment}
-- Focus on the user's goals: ${userProfile.goals.join(', ')}
+- Focus on the user's goals: ${userProfile.goals.join(", ")}
 
 EXAMPLE VALID JSON FORMAT:
 {
@@ -562,104 +622,4 @@ EXAMPLE VALID JSON FORMAT:
   ]
 }
 `;
-}
-
-// Fallback function to generate a simple workout plan when the main generation fails
-async function generateFallbackWorkoutPlan(userProfile: WorkoutGenerationRequest['userProfile']): Promise<WorkoutPlan> {
-  const basicExercises = {
-    beginner: [
-      { name: 'Bodyweight Squats', muscleGroups: ['legs', 'glutes'] },
-      { name: 'Push-ups', muscleGroups: ['chest', 'shoulders', 'triceps'] },
-      { name: 'Plank', muscleGroups: ['core'] },
-      { name: 'Lunges', muscleGroups: ['legs', 'glutes'] },
-      { name: 'Mountain Climbers', muscleGroups: ['core', 'cardio'] }
-    ],
-    intermediate: [
-      { name: 'Barbell Squats', muscleGroups: ['legs', 'glutes'] },
-      { name: 'Bench Press', muscleGroups: ['chest', 'shoulders', 'triceps'] },
-      { name: 'Deadlifts', muscleGroups: ['back', 'legs', 'glutes'] },
-      { name: 'Pull-ups', muscleGroups: ['back', 'biceps'] },
-      { name: 'Overhead Press', muscleGroups: ['shoulders', 'triceps'] },
-      { name: 'Bent-over Rows', muscleGroups: ['back', 'biceps'] }
-    ],
-    advanced: [
-      { name: 'Barbell Squats', muscleGroups: ['legs', 'glutes'] },
-      { name: 'Bench Press', muscleGroups: ['chest', 'shoulders', 'triceps'] },
-      { name: 'Deadlifts', muscleGroups: ['back', 'legs', 'glutes'] },
-      { name: 'Pull-ups', muscleGroups: ['back', 'biceps'] },
-      { name: 'Overhead Press', muscleGroups: ['shoulders', 'triceps'] },
-      { name: 'Bent-over Rows', muscleGroups: ['back', 'biceps'] },
-      { name: 'Dips', muscleGroups: ['chest', 'triceps'] },
-      { name: 'Leg Press', muscleGroups: ['legs', 'glutes'] }
-    ]
-  };
-
-  const exercises = basicExercises[userProfile.fitnessLevel as keyof typeof basicExercises] || basicExercises.beginner;
-  
-  const workoutDays: WorkoutDay[] = userProfile.availableDays.map((day, index) => {
-    const dayExercises = exercises.slice(0, Math.min(6, exercises.length));
-    
-    return {
-      day,
-      focus: index % 2 === 0 ? 'Upper Body' : 'Lower Body',
-      duration: parseInt(userProfile.workoutDuration),
-      warmup: [
-        {
-          name: 'Light Cardio',
-          description: '5 minutes of light jogging or jumping jacks',
-          sets: 1,
-          reps: '5 minutes',
-          restTime: '0 seconds',
-          equipment: ['none'],
-          muscleGroups: ['cardio'],
-          instructions: ['Start with light movement', 'Gradually increase intensity'],
-          difficulty: userProfile.fitnessLevel as 'beginner' | 'intermediate' | 'advanced'
-        }
-      ],
-      exercises: dayExercises.map(exercise => ({
-        name: exercise.name,
-        description: `Basic ${exercise.name.toLowerCase()} exercise`,
-        sets: userProfile.fitnessLevel === 'beginner' ? 3 : userProfile.fitnessLevel === 'intermediate' ? 4 : 5,
-        reps: userProfile.fitnessLevel === 'beginner' ? '8-12' : userProfile.fitnessLevel === 'intermediate' ? '10-15' : '8-15',
-        restTime: '60 seconds',
-        equipment: [userProfile.equipment],
-        muscleGroups: exercise.muscleGroups,
-        instructions: [
-          'Start in the proper position',
-          'Execute the movement with control',
-          'Return to starting position',
-          'Repeat for specified reps'
-        ],
-        difficulty: userProfile.fitnessLevel as 'beginner' | 'intermediate' | 'advanced'
-      })),
-      cooldown: [
-        {
-          name: 'Stretching',
-          description: '5 minutes of full-body stretching',
-          sets: 1,
-          reps: '5 minutes',
-          restTime: '0 seconds',
-          equipment: ['none'],
-          muscleGroups: ['full body'],
-          instructions: ['Hold each stretch for 30 seconds', 'Focus on major muscle groups'],
-          difficulty: 'beginner'
-        }
-      ],
-      notes: 'Focus on proper form and controlled movements'
-    };
-  });
-
-  return {
-    id: `workout-fallback-${Date.now()}`,
-    name: `${userProfile.name}'s Basic Workout Plan`,
-    description: 'A simplified workout plan designed for your fitness level and goals',
-    duration: 4,
-    difficulty: userProfile.fitnessLevel as 'beginner' | 'intermediate' | 'advanced',
-    frequency: userProfile.availableDays.length,
-    days: workoutDays,
-    goals: userProfile.goals,
-    equipment: [userProfile.equipment],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
 }
