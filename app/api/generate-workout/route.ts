@@ -1,9 +1,5 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextRequest, NextResponse } from 'next/server';
 import { WorkoutGenerationRequest, WorkoutGenerationResponse, WorkoutPlan } from '@/lib/types/workout';
-
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 // Retry function with exponential backoff
 async function retryWithBackoff<T>(
@@ -32,153 +28,6 @@ async function retryWithBackoff<T>(
   throw new Error('Max retries exceeded');
 }
 
-// Fallback workout plan generator for when AI is unavailable
-function generateFallbackWorkoutPlan(userProfile: WorkoutGenerationRequest['userProfile']): WorkoutPlan {
-  const workoutDays = userProfile.availableDays.map((day: string, index: number) => {
-    const isUpperBody = index % 2 === 0;
-    const focus = isUpperBody ? 'Upper Body' : 'Lower Body';
-    
-    return {
-      day,
-      focus,
-      duration: parseInt(userProfile.workoutDuration),
-      warmup: [
-        {
-          name: "Arm Circles",
-          description: "Warm up your shoulder joints",
-          sets: 1,
-          reps: "10 each direction",
-          restTime: "0 seconds",
-          equipment: ["none"],
-          muscleGroups: ["shoulders"],
-          instructions: [
-            "Stand with feet shoulder-width apart",
-            "Extend arms out to sides",
-            "Make small circles with arms",
-            "Reverse direction after 10 reps"
-          ],
-          difficulty: userProfile.fitnessLevel as 'beginner' | 'intermediate' | 'advanced',
-          videoUrl: "https://www.youtube.com/watch?v=UwR4q2Y4LJY",
-          videoThumbnail: "https://img.youtube.com/vi/UwR4q2Y4LJY/maxresdefault.jpg"
-        }
-      ],
-      exercises: isUpperBody ? [
-        {
-          name: "Push-ups",
-          description: "Classic bodyweight exercise for chest, shoulders, and triceps",
-          sets: userProfile.fitnessLevel === 'beginner' ? 2 : 3,
-          reps: userProfile.fitnessLevel === 'beginner' ? "5-8" : "8-12",
-          restTime: "60 seconds",
-          equipment: ["none"],
-          muscleGroups: ["chest", "shoulders", "triceps"],
-          instructions: [
-            "Start in plank position with hands slightly wider than shoulders",
-            "Lower body until chest nearly touches floor",
-            "Push back up to starting position",
-            "Keep core tight throughout movement"
-          ],
-          tips: ["Modify by doing knee push-ups if needed", "Keep body in straight line"],
-          difficulty: userProfile.fitnessLevel as 'beginner' | 'intermediate' | 'advanced',
-          videoUrl: "https://www.youtube.com/watch?v=IODxDxX7oi4",
-          videoThumbnail: "https://img.youtube.com/vi/IODxDxX7oi4/maxresdefault.jpg"
-        },
-        {
-          name: "Bodyweight Squats",
-          description: "Fundamental lower body exercise",
-          sets: userProfile.fitnessLevel === 'beginner' ? 2 : 3,
-          reps: userProfile.fitnessLevel === 'beginner' ? "8-10" : "10-15",
-          restTime: "60 seconds",
-          equipment: ["none"],
-          muscleGroups: ["quadriceps", "glutes", "hamstrings"],
-          instructions: [
-            "Stand with feet shoulder-width apart",
-            "Lower down as if sitting in a chair",
-            "Keep knees behind toes",
-            "Return to standing position"
-          ],
-          tips: ["Keep chest up", "Weight on heels"],
-          difficulty: userProfile.fitnessLevel as 'beginner' | 'intermediate' | 'advanced',
-          videoUrl: "https://www.youtube.com/watch?v=YaXPRqUwP_Q",
-          videoThumbnail: "https://img.youtube.com/vi/YaXPRqUwP_Q/maxresdefault.jpg"
-        }
-      ] : [
-        {
-          name: "Lunges",
-          description: "Single-leg exercise for lower body strength",
-          sets: userProfile.fitnessLevel === 'beginner' ? 2 : 3,
-          reps: userProfile.fitnessLevel === 'beginner' ? "6 each leg" : "8-10 each leg",
-          restTime: "60 seconds",
-          equipment: ["none"],
-          muscleGroups: ["quadriceps", "glutes", "hamstrings"],
-          instructions: [
-            "Step forward with one leg",
-            "Lower back knee toward ground",
-            "Push back to starting position",
-            "Alternate legs"
-          ],
-          tips: ["Keep front knee over ankle", "Don't let knee cave in"],
-          difficulty: userProfile.fitnessLevel as 'beginner' | 'intermediate' | 'advanced',
-          videoUrl: "https://www.youtube.com/watch?v=QOVaHwm-Q6U",
-          videoThumbnail: "https://img.youtube.com/vi/QOVaHwm-Q6U/maxresdefault.jpg"
-        },
-        {
-          name: "Plank",
-          description: "Core strengthening exercise",
-          sets: 2,
-          reps: userProfile.fitnessLevel === 'beginner' ? "15-30 seconds" : "30-60 seconds",
-          restTime: "60 seconds",
-          equipment: ["none"],
-          muscleGroups: ["core", "shoulders"],
-          instructions: [
-            "Start in push-up position",
-            "Lower to forearms",
-            "Keep body in straight line",
-            "Hold position"
-          ],
-          tips: ["Don't let hips sag", "Engage core muscles"],
-          difficulty: userProfile.fitnessLevel as 'beginner' | 'intermediate' | 'advanced',
-          videoUrl: "https://www.youtube.com/watch?v=pSHjTRCQxIw",
-          videoThumbnail: "https://img.youtube.com/vi/pSHjTRCQxIw/maxresdefault.jpg"
-        }
-      ],
-      cooldown: [
-        {
-          name: "Chest Stretch",
-          description: "Stretch the chest muscles",
-          sets: 1,
-          reps: "30 seconds",
-          restTime: "0 seconds",
-          equipment: ["none"],
-          muscleGroups: ["chest"],
-          instructions: [
-            "Stand in doorway",
-            "Place forearm on door frame",
-            "Step forward to feel stretch",
-            "Hold for 30 seconds"
-          ],
-          difficulty: "beginner" as const,
-          videoUrl: "https://www.youtube.com/watch?v=3VcKX3J4q8Q",
-          videoThumbnail: "https://img.youtube.com/vi/3VcKX3J4q8Q/maxresdefault.jpg"
-        }
-      ],
-      notes: "This is a basic workout plan. For personalized recommendations, try again when the AI service is available."
-    };
-  });
-
-  return {
-    id: `workout-fallback-${Date.now()}`,
-    name: `${userProfile.name}'s Basic Workout Plan`,
-    description: 'A basic workout plan generated when AI service is unavailable. Includes fundamental exercises for your fitness level.',
-    duration: 4,
-    difficulty: userProfile.fitnessLevel as 'beginner' | 'intermediate' | 'advanced',
-    frequency: userProfile.availableDays.length,
-    days: workoutDays,
-    goals: userProfile.goals,
-    equipment: [userProfile.equipment],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-}
 
 export async function POST(request: NextRequest) {
   let userProfile: WorkoutGenerationRequest['userProfile'] | null = null;
@@ -187,42 +36,117 @@ export async function POST(request: NextRequest) {
     const body: WorkoutGenerationRequest = await request.json();
     userProfile = body.userProfile;
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
-        { success: false, error: 'Gemini API key not configured' },
+        { success: false, error: 'OpenAI API key not configured' },
         { status: 500 }
       );
     }
 
-    // Create the prompt for Gemini
+    // Create the prompt for OpenAI
     const prompt = createWorkoutPrompt(userProfile);
 
-    // Generate workout plan using Gemini Flash 2.5 with retry logic
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
-    
+    // Generate workout plan using OpenAI GPT-4o-mini with retry logic
     const result = await retryWithBackoff(async () => {
-      return await model.generateContent(prompt);
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            {
+              role: 'system',
+              content: 'You are a professional fitness trainer and nutritionist with 15+ years of experience. Create comprehensive, personalized workout plans. Always respond with valid JSON only.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.7,
+          max_tokens: 4000,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+      }
+
+      return await response.json();
     });
     
-    const response = await result.response;
-    const text = response.text();
+    const text = result.choices[0]?.message?.content;
 
-    // Parse the JSON response from Gemini
+    // Parse the JSON response from OpenAI
     let workoutPlanData;
     try {
-      // Extract JSON from the response (in case there's extra text)
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        workoutPlanData = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No valid JSON found in response');
+      if (!text) {
+        throw new Error('No content in OpenAI response');
       }
-    } catch (parseError) {
-      console.error('Error parsing Gemini response:', parseError);
-      return NextResponse.json(
-        { success: false, error: 'Failed to parse workout plan from AI response' },
-        { status: 500 }
-      );
+      
+      console.log('Raw AI response:', text.substring(0, 500) + '...');
+      
+      // Try to find and extract JSON from the response
+      let jsonString = text.trim();
+      
+      // Remove any markdown code blocks
+      jsonString = jsonString.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+      
+      // Try to find JSON object boundaries more precisely
+      const jsonStart = jsonString.indexOf('{');
+      const jsonEnd = jsonString.lastIndexOf('}');
+      
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        jsonString = jsonString.substring(jsonStart, jsonEnd + 1);
+      }
+      
+      // Clean up common JSON issues
+      jsonString = jsonString
+        .replace(/,\s*}/g, '}')  // Remove trailing commas before closing braces
+        .replace(/,\s*]/g, ']')  // Remove trailing commas before closing brackets
+        .replace(/(\w+):/g, '"$1":')  // Quote unquoted keys
+        .replace(/:(\w+)/g, ':"$1"')  // Quote unquoted string values
+        .replace(/:(\d+)/g, ':$1')    // Keep numbers unquoted
+        .replace(/:(\d+\.\d+)/g, ':$1') // Keep decimals unquoted
+        .replace(/:true/g, ':true')   // Keep booleans unquoted
+        .replace(/:false/g, ':false')
+        .replace(/:null/g, ':null');
+      
+      console.log('Cleaned JSON string:', jsonString.substring(0, 500) + '...');
+      
+      workoutPlanData = JSON.parse(jsonString);
+    } catch (parseError: unknown) {
+      console.error('Error parsing OpenAI response:', parseError);
+      console.error('Raw response:', text);
+      
+      // Try a more aggressive JSON extraction
+      try {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const rawJson = jsonMatch[0];
+          console.log('Attempting to parse raw JSON match:', rawJson.substring(0, 500) + '...');
+          workoutPlanData = JSON.parse(rawJson);
+        } else {
+          throw new Error('No JSON object found in response');
+        }
+      } catch (secondParseError: unknown) {
+        console.error('Second parse attempt failed:', secondParseError);
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: 'Failed to parse workout plan from AI response. The AI may have returned malformed JSON.',
+            debug: {
+              rawResponse: text.substring(0, 1000),
+              parseError: parseError instanceof Error ? parseError.message : String(parseError)
+            }
+          },
+          { status: 500 }
+        );
+      }
     }
 
     // Create the workout plan object
@@ -249,30 +173,12 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Error generating workout plan:', error);
     
-    // Check if it's an overload error and provide fallback
     const errorObj = error as { status?: number; message?: string };
-    if (errorObj.status === 503 || errorObj.message?.includes('overloaded')) {
-      console.log('Gemini API overloaded, generating fallback workout plan...');
-      
-      try {
-        if (userProfile) {
-          const fallbackWorkoutPlan = generateFallbackWorkoutPlan(userProfile);
-          return NextResponse.json({
-            success: true,
-            workoutPlan: fallbackWorkoutPlan,
-            isFallback: true,
-            message: 'AI service is temporarily overloaded. Generated a basic workout plan instead.'
-          });
-        }
-      } catch (fallbackError) {
-        console.error('Error generating fallback workout plan:', fallbackError);
-      }
-    }
     
     return NextResponse.json(
       { 
         success: false, 
-        error: errorObj.status === 503 
+        error: errorObj.status === 503 || errorObj.message?.includes('rate limit')
           ? 'AI service is temporarily overloaded. Please try again in a few minutes.'
           : 'Failed to generate workout plan. Please try again later.'
       },
@@ -282,8 +188,7 @@ export async function POST(request: NextRequest) {
 }
 
 function createWorkoutPrompt(userProfile: WorkoutGenerationRequest['userProfile']): string {
-  return `
-You are a professional fitness trainer and nutritionist with 15+ years of experience. Create a comprehensive, personalized workout plan for the following user profile.
+  return `You are a professional fitness trainer creating a personalized workout plan. Generate a comprehensive ${userProfile.availableDays.length}-day workout plan based on the user's profile.
 
 USER PROFILE:
 - Name: ${userProfile.name}
@@ -299,24 +204,28 @@ USER PROFILE:
 - Equipment Available: ${userProfile.equipment}
 - Health Conditions: ${userProfile.healthConditions || 'None reported'}
 
-REQUIREMENTS:
-1. Create a ${userProfile.availableDays.length}-day workout plan that fits their schedule
-2. Each workout should be approximately ${userProfile.workoutDuration} minutes
-3. Include exercises appropriate for their ${userProfile.fitnessLevel} fitness level
-4. Focus on their goals: ${userProfile.goals.join(', ')}
-5. Use only equipment they have: ${userProfile.equipment}
-6. Include proper warm-up and cool-down exercises
-7. Provide clear instructions for each exercise
-8. Include rest periods between sets
-9. Consider their age and any health conditions
-10. IMPORTANT: Include YouTube video URLs for exercise demonstrations
-    - Use high-quality, educational fitness videos
-    - Prefer videos from reputable fitness channels
-    - Include both videoUrl and videoThumbnail fields
-    - Choose videos that match the user's fitness level
+WORKOUT PLAN REQUIREMENTS:
+1. Create exactly ${userProfile.availableDays.length} workout days
+2. Each workout must be ${userProfile.workoutDuration} minutes total
+3. Design exercises appropriate for ${userProfile.fitnessLevel} level
+4. Focus on achieving these goals: ${userProfile.goals.join(', ')}
+5. Use only this equipment: ${userProfile.equipment}
+6. Include 5-10 minute warm-up and 5-10 minute cool-down
+7. Provide detailed step-by-step instructions
+8. Include proper rest periods (30-90 seconds between sets)
+9. Consider age-appropriate modifications for ${userProfile.age} years old
+10. Include YouTube video URLs for exercise demonstrations
 
-OUTPUT FORMAT:
-Return ONLY a valid JSON object with this exact structure:
+EXERCISE GUIDELINES:
+- For beginners: 2-3 sets, 8-12 reps, focus on form
+- For intermediate: 3-4 sets, 10-15 reps, moderate intensity
+- For advanced: 4-5 sets, 12-20 reps, high intensity
+- Include both strength and cardio elements
+- Vary exercises to prevent boredom
+- Progress difficulty over the 4-week duration
+
+RESPONSE FORMAT:
+Return ONLY valid JSON with this exact structure:
 
 {
   "name": "Personalized Workout Plan Name",
@@ -331,66 +240,119 @@ Return ONLY a valid JSON object with this exact structure:
       "duration": ${parseInt(userProfile.workoutDuration)},
       "warmup": [
         {
+          "name": "Exercise Name",
+          "description": "Brief exercise description",
+          "sets": 1,
+          "reps": "10-15 reps",
+          "restTime": "0 seconds",
+          "equipment": ["none"],
+          "muscleGroups": ["muscle group"],
+          "instructions": [
+            "Step 1: Starting position",
+            "Step 2: Movement execution",
+            "Step 3: Return to start",
+            "Step 4: Repeat"
+          ],
+          "difficulty": "${userProfile.fitnessLevel}",
+          "videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID",
+          "videoThumbnail": "https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg"
+        }
+      ],
+      "exercises": [
+        {
+          "name": "Exercise Name",
+          "description": "Detailed exercise description",
+          "sets": 3,
+          "reps": "8-12",
+          "restTime": "60 seconds",
+          "equipment": ["${userProfile.equipment}"],
+          "muscleGroups": ["primary", "secondary"],
+          "instructions": [
+            "Step 1: Starting position",
+            "Step 2: Movement execution",
+            "Step 3: Return to start",
+            "Step 4: Repeat"
+          ],
+          "tips": [
+            "Form tip 1",
+            "Form tip 2"
+          ],
+          "difficulty": "${userProfile.fitnessLevel}",
+          "videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID",
+          "videoThumbnail": "https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg"
+        }
+      ],
+      "cooldown": [
+        {
+          "name": "Stretch Name",
+          "description": "Stretch description",
+          "sets": 1,
+          "reps": "30 seconds",
+          "restTime": "0 seconds",
+          "equipment": ["none"],
+          "muscleGroups": ["muscle group"],
+          "instructions": [
+            "Step 1: Starting position",
+            "Step 2: Stretch execution",
+            "Step 3: Hold position",
+            "Step 4: Release"
+          ],
+          "difficulty": "beginner",
+          "videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID",
+          "videoThumbnail": "https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg"
+        }
+      ],
+      "notes": "Workout-specific notes and tips"
+    }
+  ]
+}
+
+CRITICAL REQUIREMENTS:
+- Return ONLY valid JSON, no markdown, no code blocks, no explanations
+- Ensure all JSON keys are properly quoted with double quotes
+- No trailing commas in arrays or objects
+- All string values must be in double quotes
+- Use real YouTube video IDs for demonstrations
+- Ensure all exercises match the user's fitness level
+- Include 4-8 exercises per workout day
+- Vary workout focus (upper body, lower body, cardio, full body)
+- Make exercises progressive and challenging
+- Include proper warm-up and cool-down for each day
+- Use only the specified equipment: ${userProfile.equipment}
+- Focus on the user's goals: ${userProfile.goals.join(', ')}
+
+EXAMPLE VALID JSON FORMAT:
+{
+  "name": "John's Beginner Workout Plan",
+  "description": "A 3-day beginner workout plan",
+  "duration": 4,
+  "difficulty": "beginner",
+  "frequency": 3,
+  "days": [
+    {
+      "day": "Monday",
+      "focus": "Upper Body",
+      "duration": 30,
+      "warmup": [
+        {
           "name": "Arm Circles",
-          "description": "Warm up your shoulder joints",
+          "description": "Warm up shoulders",
           "sets": 1,
           "reps": "10 each direction",
           "restTime": "0 seconds",
           "equipment": ["none"],
           "muscleGroups": ["shoulders"],
-          "instructions": ["Stand with feet shoulder-width apart", "Extend arms out to sides", "Make small circles with arms", "Reverse direction after 10 reps"],
+          "instructions": ["Stand with feet shoulder-width apart", "Extend arms out to sides"],
           "difficulty": "beginner",
           "videoUrl": "https://www.youtube.com/watch?v=1p3MQD7x0-s",
           "videoThumbnail": "https://img.youtube.com/vi/1p3MQD7x0-s/maxresdefault.jpg"
         }
       ],
-      "exercises": [
-        {
-          "name": "Push-ups",
-          "description": "Classic bodyweight exercise for chest, shoulders, and triceps",
-          "sets": 3,
-          "reps": "8-12",
-          "restTime": "60 seconds",
-          "equipment": ["none"],
-          "muscleGroups": ["chest", "shoulders", "triceps"],
-          "instructions": [
-            "Start in plank position with hands slightly wider than shoulders",
-            "Lower body until chest nearly touches floor",
-            "Push back up to starting position",
-            "Keep core tight throughout movement"
-          ],
-          "tips": ["Modify by doing knee push-ups if needed", "Keep body in straight line"],
-          "difficulty": "${userProfile.fitnessLevel}",
-          "videoUrl": "https://www.youtube.com/watch?v=IODxDxX7oi4",
-          "videoThumbnail": "https://img.youtube.com/vi/IODxDxX7oi4/maxresdefault.jpg"
-        }
-      ],
-      "cooldown": [
-        {
-          "name": "Chest Stretch",
-          "description": "Stretch the chest muscles",
-          "sets": 1,
-          "reps": "30 seconds",
-          "restTime": "0 seconds",
-          "equipment": ["none"],
-          "muscleGroups": ["chest"],
-          "instructions": ["Stand in doorway", "Place forearm on door frame", "Step forward to feel stretch", "Hold for 30 seconds"],
-          "difficulty": "beginner",
-          "videoUrl": "https://www.youtube.com/watch?v=3VcKX3J4q8Q",
-          "videoThumbnail": "https://img.youtube.com/vi/3VcKX3J4q8Q/maxresdefault.jpg"
-        }
-      ],
-      "notes": "Focus on proper form over speed. Rest as needed between exercises."
+      "exercises": [],
+      "cooldown": [],
+      "notes": "Focus on proper form"
     }
   ]
 }
-
-IMPORTANT: 
-- Return ONLY the JSON object, no additional text
-- Ensure all exercises are appropriate for their fitness level
-- Include variety in exercises to prevent boredom
-- Consider progressive overload (increasing difficulty over time)
-- Make it realistic and achievable for their schedule
-- Include both strength and cardio elements based on their goals
 `;
 }

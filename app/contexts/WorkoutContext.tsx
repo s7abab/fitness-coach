@@ -110,9 +110,11 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
   }, [state.currentWorkoutPlan]);
 
   const generateWorkoutPlan = async (userProfile: any) => {
+    console.log('generateWorkoutPlan called with:', userProfile);
     try {
       dispatch({ type: 'CLEAR_ERROR' });
       dispatch({ type: 'SET_GENERATING', generating: true });
+      console.log('Set generating state to true');
 
       const request: WorkoutGenerationRequest = {
         userProfile: {

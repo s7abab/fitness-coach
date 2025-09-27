@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { useWorkout } from '../contexts/WorkoutContext';
+import { useOnboarding } from '../contexts/OnboardingContext';
 import WorkoutPlanDisplay from '../components/workout/WorkoutPlanDisplay';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +11,41 @@ import { AlertCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 export default function WorkoutPlanPage() {
-  const { state } = useWorkout();
+  const { state, generateWorkoutPlan } = useWorkout();
+  const { state: onboardingState } = useOnboarding();
+
+  const handleRegenerate = async () => {
+    console.log('Regenerate button clicked');
+    console.log('Onboarding state:', onboardingState);
+    console.log('Is complete:', onboardingState.isComplete);
+    console.log('Workout state:', state);
+    
+    // Check if we have the minimum required data for regeneration
+    const hasRequiredData = onboardingState.data.name && 
+                           onboardingState.data.age && 
+                           onboardingState.data.fitnessLevel && 
+                           onboardingState.data.goals.length > 0;
+    
+    console.log('Has required data:', hasRequiredData);
+    
+    if (onboardingState.isComplete || hasRequiredData) {
+      console.log('Starting workout generation with data:', onboardingState.data);
+      try {
+        await generateWorkoutPlan(onboardingState.data);
+        console.log('Workout generation completed');
+      } catch (error) {
+        console.error('Error during regeneration:', error);
+      }
+    } else {
+      console.log('Onboarding not complete or missing required data, cannot regenerate');
+      console.log('Missing data:', {
+        name: !onboardingState.data.name,
+        age: !onboardingState.data.age,
+        fitnessLevel: !onboardingState.data.fitnessLevel,
+        goals: onboardingState.data.goals.length === 0
+      });
+    }
+  };
 
   if (!state.currentWorkoutPlan) {
     return (
@@ -66,7 +101,11 @@ export default function WorkoutPlanPage() {
         </div>
       </div>
       
-      <WorkoutPlanDisplay workoutPlan={state.currentWorkoutPlan} />
+      <WorkoutPlanDisplay 
+        workoutPlan={state.currentWorkoutPlan} 
+        onRegenerate={handleRegenerate}
+        isRegenerating={state.isGenerating}
+      />
     </div>
   );
 }

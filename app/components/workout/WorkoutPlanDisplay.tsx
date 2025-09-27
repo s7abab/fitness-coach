@@ -6,14 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, Clock, Target, Dumbbell, Users, Calendar, Play } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Target, Dumbbell, Users, Calendar, Play, RefreshCw } from 'lucide-react';
 import VideoPlayer from './VideoPlayer';
 
 interface WorkoutPlanDisplayProps {
   workoutPlan: WorkoutPlan;
+  onRegenerate?: () => void;
+  isRegenerating?: boolean;
 }
 
-export default function WorkoutPlanDisplay({ workoutPlan }: WorkoutPlanDisplayProps) {
+export default function WorkoutPlanDisplay({ workoutPlan, onRegenerate, isRegenerating = false }: WorkoutPlanDisplayProps) {
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set());
   const [expandedExercises, setExpandedExercises] = useState<Set<string>>(new Set());
 
@@ -160,10 +162,25 @@ export default function WorkoutPlanDisplay({ workoutPlan }: WorkoutPlanDisplayPr
               <CardTitle className="text-2xl">{workoutPlan.name}</CardTitle>
               <CardDescription className="text-base mt-2">{workoutPlan.description}</CardDescription>
             </div>
-            <div className="text-right">
+            <div className="flex items-center space-x-3">
               <Badge className={getDifficultyColor(workoutPlan.difficulty)}>
                 {workoutPlan.difficulty}
               </Badge>
+              {onRegenerate && (
+                <Button
+                  onClick={() => {
+                    console.log('Regenerate button clicked in component');
+                    onRegenerate();
+                  }}
+                  disabled={isRegenerating}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center space-x-2"
+                >
+                  <RefreshCw className={`h-4 w-4 ${isRegenerating ? 'animate-spin' : ''}`} />
+                  <span>{isRegenerating ? 'Generating...' : 'Regenerate'}</span>
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
