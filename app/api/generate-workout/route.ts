@@ -7,6 +7,7 @@ import {
   Exercise,
 } from "@/lib/types/workout";
 import { youtubeAPI } from "@/lib/youtube-api";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Retry function with exponential backoff
 async function retryWithBackoff<T>(
@@ -159,6 +160,29 @@ function normalizeExercise(exercise: Partial<Exercise> & Record<string, unknown>
   };
 }
 
+// Function to generate workout plan using Gemini 2.5 Turbo
+async function generateWorkoutWithGemini(
+  userProfile: WorkoutGenerationRequest["userProfile"]
+): Promise<string> {
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error("Gemini API key not configured");
+  }
+
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+  const prompt = createWorkoutPrompt(userProfile);
+
+  try {
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text();
+  } catch (error) {
+    console.error("Gemini API error:", error);
+    throw new Error(`Gemini API error: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 // Function to enhance exercises with YouTube videos
 async function enhanceExercisesWithVideos<T extends { name: string }>(
   exercises: T[]
@@ -206,64 +230,96 @@ export async function POST(request: NextRequest) {
     const body: WorkoutGenerationRequest = await request.json();
     userProfile = body.userProfile;
 
-    if (!process.env.OPENAI_API_KEY) {
+    // Check if at least one AI service is configured
+    if (!process.env.OPENAI_API_KEY && !process.env.GEMINI_API_KEY) {
       return NextResponse.json(
-        { success: false, error: "OpenAI API key not configured" },
+        { success: false, error: "No AI service API key configured (OpenAI or Gemini required)" },
         { status: 500 }
       );
     }
 
-    // Create the prompt for OpenAI
+    // Create the prompt for AI generation
     const prompt = createWorkoutPrompt(userProfile);
 
-    // Generate workout plan using OpenAI GPT-4o-mini with retry logic
-    const result = await retryWithBackoff(async () => {
-      const response = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [
-              {
-                role: "system",
-                content:
-                  "You are a professional fitness trainer and nutritionist with 15+ years of experience. Create comprehensive, personalized workout plans. Always respond with valid JSON only.",
-              },
-              {
-                role: "user",
-                content: prompt,
-              },
-            ],
-            temperature: 0.7,
-            max_tokens: 8000,
-          }),
-        }
-      );
+    // Try OpenAI first, then fallback to Gemini
+    let text: string;
+    let aiProvider = "unknown";
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+    try {
+      // Try OpenAI first if API key is available
+      if (process.env.OPENAI_API_KEY) {
+        console.log("Attempting to generate workout with OpenAI...");
+        const result = await retryWithBackoff(async () => {
+          const response = await fetch(
+            "https://api.openai.com/v1/chat/completions",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                model: "gpt-4o-mini",
+                messages: [
+                  {
+                    role: "system",
+                    content:
+                      "You are a professional fitness trainer and nutritionist with 15+ years of experience. Create comprehensive, personalized workout plans. Always respond with valid JSON only.",
+                  },
+                  {
+                    role: "user",
+                    content: prompt,
+                  },
+                ],
+                temperature: 0.7,
+                max_tokens: 8000,
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
+          }
+
+          return await response.json();
+        });
+
+        text = result.choices[0]?.message?.content;
+        aiProvider = "OpenAI";
+        console.log("Successfully generated workout with OpenAI");
+      } else {
+        throw new Error("OpenAI API key not configured");
       }
+    } catch (openaiError) {
+      console.warn("OpenAI failed, falling back to Gemini:", openaiError);
+      
+      // Fallback to Gemini
+      if (process.env.GEMINI_API_KEY) {
+        try {
+          console.log("Attempting to generate workout with Gemini...");
+          text = await generateWorkoutWithGemini(userProfile);
+          aiProvider = "Gemini";
+          console.log("Successfully generated workout with Gemini");
+        } catch (geminiError) {
+          console.error("Both OpenAI and Gemini failed:", { openaiError, geminiError });
+          throw new Error(`Both AI services failed. OpenAI: ${openaiError instanceof Error ? openaiError.message : String(openaiError)}, Gemini: ${geminiError instanceof Error ? geminiError.message : String(geminiError)}`);
+        }
+      } else {
+        console.error("OpenAI failed and Gemini API key not configured");
+        throw new Error(`OpenAI failed: ${openaiError instanceof Error ? openaiError.message : String(openaiError)}. Gemini API key not configured.`);
+      }
+    }
 
-      return await response.json();
-    });
-
-    const text = result.choices[0]?.message?.content;
-
-    // Parse the JSON response from OpenAI
+    // Parse the JSON response from AI service
     let workoutPlanData;
     try {
       if (!text) {
-        throw new Error("No content in OpenAI response");
+        throw new Error(`No content in ${aiProvider} response`);
       }
 
-      console.log("Raw AI response length:", text.length);
-      console.log("Raw AI response preview:", text.substring(0, 500) + "...");
+      console.log(`Raw ${aiProvider} response length:`, text.length);
+      console.log(`Raw ${aiProvider} response preview:`, text.substring(0, 500) + "...");
 
       // Try to find and extract JSON from the response
       let jsonString = text.trim();
@@ -361,7 +417,7 @@ export async function POST(request: NextRequest) {
         throw lastError || new Error("Failed to parse JSON after multiple repair attempts");
       }
     } catch (parseError: unknown) {
-      console.error("Error parsing OpenAI response:", parseError);
+      console.error(`Error parsing ${aiProvider} response:`, parseError);
       console.error("Raw response length:", text.length);
       console.error("Raw response preview:", text.substring(0, 1000));
 
@@ -468,8 +524,9 @@ export async function POST(request: NextRequest) {
             {
               success: false,
               error:
-                "Failed to parse workout plan from AI response. The AI response may be too long or malformed.",
+                `Failed to parse workout plan from ${aiProvider} response. The AI response may be too long or malformed.`,
               debug: {
+                aiProvider,
                 rawResponseLength: text.length,
                 rawResponsePreview: text.substring(0, 1000),
                 parseError:
@@ -549,6 +606,7 @@ export async function POST(request: NextRequest) {
       workoutPlan,
     };
 
+    console.log(`Workout plan successfully generated using ${aiProvider}`);
     return NextResponse.json(response_data);
   } catch (error: unknown) {
     console.error("Error generating workout plan:", error);

@@ -1,6 +1,6 @@
 # FitAI Coach - AI Fitness App with Workout Generation
 
-A comprehensive AI-powered fitness application with personalized workout plan generation using Gemini Flash 2.5, built with Next.js 14, TypeScript, and Tailwind CSS.
+A comprehensive AI-powered fitness application with personalized workout plan generation using OpenAI GPT-4o-mini with Gemini 2.0 Flash fallback, built with Next.js 14, TypeScript, and Tailwind CSS.
 
 ## Features
 
@@ -22,7 +22,7 @@ A comprehensive AI-powered fitness application with personalized workout plan ge
 - **Mobile-first responsive design**
 - **Smooth animations** and transitions
 - **Accessibility features** built-in
-- **Gemini Flash 2.5** AI integration for workout generation
+- **OpenAI GPT-4o-mini** with **Gemini 2.0 Flash fallback** for reliable workout generation
 - **YouTube Data API v3** integration for exercise videos
 - **RESTful API** for workout plan creation
 - **TypeScript types** for type safety
