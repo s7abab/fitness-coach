@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, Clock, Target, Dumbbell, Users, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Target, Dumbbell, Users, Calendar, Play } from 'lucide-react';
+import VideoPlayer from './VideoPlayer';
 
 interface WorkoutPlanDisplayProps {
   workoutPlan: WorkoutPlan;
@@ -54,11 +55,10 @@ export default function WorkoutPlanDisplay({ workoutPlan }: WorkoutPlanDisplayPr
     
     return (
       <Card className="mb-4">
-        <Collapsible>
+        <Collapsible open={isExpanded} onOpenChange={() => toggleExercise(exercise.name)}>
           <CollapsibleTrigger asChild>
             <CardHeader 
               className="cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => toggleExercise(exercise.name)}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -71,6 +71,12 @@ export default function WorkoutPlanDisplay({ workoutPlan }: WorkoutPlanDisplayPr
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
+                  {exercise.videoUrl && (
+                    <div className="flex items-center space-x-1 text-red-600">
+                      <Play className="h-3 w-3" />
+                      <span className="text-xs font-medium">Video</span>
+                    </div>
+                  )}
                   <Badge className={getDifficultyColor(exercise.difficulty)}>
                     {exercise.difficulty}
                   </Badge>
@@ -107,6 +113,14 @@ export default function WorkoutPlanDisplay({ workoutPlan }: WorkoutPlanDisplayPr
                   </div>
                 </div>
               </div>
+
+              {/* Video Player */}
+              <VideoPlayer
+                videoUrl={exercise.videoUrl}
+                videoThumbnail={exercise.videoThumbnail}
+                exerciseName={exercise.name}
+                className="mb-4"
+              />
 
               <div className="space-y-3">
                 <div>
@@ -206,11 +220,10 @@ export default function WorkoutPlanDisplay({ workoutPlan }: WorkoutPlanDisplayPr
           
           return (
             <Card key={day.day}>
-              <Collapsible>
+              <Collapsible open={isExpanded} onOpenChange={() => toggleDay(day.day)}>
                 <CollapsibleTrigger asChild>
                   <CardHeader 
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => toggleDay(day.day)}
                   >
                     <div className="flex items-center justify-between">
                       <div>

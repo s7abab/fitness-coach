@@ -9,6 +9,8 @@ export interface Exercise {
   instructions: string[];
   tips?: string[];
   difficulty: 'beginner' | 'intermediate' | 'advanced';
+  videoUrl?: string; // YouTube URL for exercise demonstration
+  videoThumbnail?: string; // YouTube thumbnail URL
 }
 
 export interface WorkoutDay {
@@ -56,4 +58,6 @@ export interface WorkoutGenerationResponse {
   success: boolean;
   workoutPlan?: WorkoutPlan;
   error?: string;
+  isFallback?: boolean;
+  message?: string;
 }

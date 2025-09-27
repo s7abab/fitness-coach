@@ -55,6 +55,8 @@ The application will be available at `http://localhost:3000`
 - ✅ **Detailed Exercise Instructions** with sets, reps, and tips
 - ✅ **Equipment-Based Workouts** tailored to your available equipment
 - ✅ **Fitness Level Adaptation** from beginner to advanced
+- ✅ **Video Demonstrations** with YouTube integration for each exercise
+- ✅ **Interactive Video Player** with thumbnails and play controls
 - ✅ **Responsive Design** works on all devices
 - ✅ **Progress Tracking** with localStorage persistence
 

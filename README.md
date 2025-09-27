@@ -135,11 +135,32 @@ The app uses Google's Gemini Flash 2.5 model to generate personalized workout pl
 ### Generated Workout Features:
 - **Personalized Exercises**: Tailored to fitness level and goals
 - **Detailed Instructions**: Step-by-step exercise guidance
+- **Video Demonstrations**: YouTube videos for each exercise
 - **Equipment Requirements**: Based on available equipment
 - **Progressive Difficulty**: Appropriate for user's fitness level
 - **Warm-up & Cool-down**: Complete workout structure
 - **Rest Periods**: Optimized recovery between exercises
 - **Muscle Group Focus**: Balanced training approach
+- **Interactive Video Player**: Click to play exercise demonstrations
+
+## Video Integration
+
+The app includes comprehensive video support for exercise demonstrations:
+
+### Video Features:
+- **YouTube Integration**: Seamless video playback using YouTube's embed API
+- **Thumbnail Previews**: High-quality video thumbnails for quick identification
+- **Responsive Design**: Videos adapt to different screen sizes
+- **Play Controls**: Easy play/pause and external link options
+- **Error Handling**: Graceful fallbacks for missing or invalid videos
+- **Performance Optimized**: Lazy loading and efficient video embedding
+
+### Video Player Features:
+- **Click to Play**: Interactive thumbnails with play button overlay
+- **Full-Screen Support**: YouTube's native full-screen functionality
+- **External Links**: Option to open videos in new tabs
+- **Auto-Generated Thumbnails**: Automatic fallback to YouTube's thumbnail service
+- **Accessibility**: Proper ARIA labels and keyboard navigation
 
 ## Customization
 

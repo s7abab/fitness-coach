@@ -8,6 +8,7 @@ interface WorkoutState {
   isLoading: boolean;
   error: string | null;
   isGenerating: boolean;
+  notification: string | null;
 }
 
 type WorkoutAction =
@@ -15,7 +16,9 @@ type WorkoutAction =
   | { type: 'SET_GENERATING'; generating: boolean }
   | { type: 'SET_ERROR'; error: string | null }
   | { type: 'SET_WORKOUT_PLAN'; workoutPlan: WorkoutPlan | null }
+  | { type: 'SET_NOTIFICATION'; notification: string | null }
   | { type: 'CLEAR_ERROR' }
+  | { type: 'CLEAR_NOTIFICATION' }
   | { type: 'RESET' };
 
 const initialState: WorkoutState = {
@@ -23,6 +26,7 @@ const initialState: WorkoutState = {
   isLoading: false,
   error: null,
   isGenerating: false,
+  notification: null,
 };
 
 function workoutReducer(state: WorkoutState, action: WorkoutAction): WorkoutState {
@@ -52,10 +56,20 @@ function workoutReducer(state: WorkoutState, action: WorkoutAction): WorkoutStat
         isGenerating: false,
         error: null,
       };
+    case 'SET_NOTIFICATION':
+      return {
+        ...state,
+        notification: action.notification,
+      };
     case 'CLEAR_ERROR':
       return {
         ...state,
         error: null,
+      };
+    case 'CLEAR_NOTIFICATION':
+      return {
+        ...state,
+        notification: null,
       };
     case 'RESET':
       return initialState;
@@ -69,6 +83,7 @@ const WorkoutContext = createContext<{
   dispatch: React.Dispatch<WorkoutAction>;
   generateWorkoutPlan: (userProfile: any) => Promise<void>;
   clearError: () => void;
+  clearNotification: () => void;
 } | null>(null);
 
 export function WorkoutProvider({ children }: { children: React.ReactNode }) {
@@ -133,6 +148,11 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
 
       if (data.success && data.workoutPlan) {
         dispatch({ type: 'SET_WORKOUT_PLAN', workoutPlan: data.workoutPlan });
+        
+        // Show notification if it's a fallback plan
+        if (data.isFallback && data.message) {
+          dispatch({ type: 'SET_NOTIFICATION', notification: data.message });
+        }
       } else {
         throw new Error(data.error || 'Failed to generate workout plan');
       }
@@ -149,8 +169,12 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'CLEAR_ERROR' });
   };
 
+  const clearNotification = () => {
+    dispatch({ type: 'CLEAR_NOTIFICATION' });
+  };
+
   return (
-    <WorkoutContext.Provider value={{ state, dispatch, generateWorkoutPlan, clearError }}>
+    <WorkoutContext.Provider value={{ state, dispatch, generateWorkoutPlan, clearError, clearNotification }}>
       {children}
     </WorkoutContext.Provider>
   );

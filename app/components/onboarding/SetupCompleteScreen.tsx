@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation';
 
 export default function SetupCompleteScreen() {
   const { state, dispatch } = useOnboarding();
-  const { state: workoutState, generateWorkoutPlan, clearError } = useWorkout();
+  const { state: workoutState, generateWorkoutPlan, clearError, clearNotification } = useWorkout();
   const [showAnimation, setShowAnimation] = useState(false);
   const router = useRouter();
 
@@ -26,14 +26,13 @@ export default function SetupCompleteScreen() {
   const handleStartWorkout = async () => {
     try {
       await generateWorkoutPlan(state.data);
+      // Automatically navigate to workout plan page after generation
+      router.push('/workout-plan');
     } catch (error) {
       console.error('Error generating workout plan:', error);
     }
   };
 
-  const handleViewWorkoutPlan = () => {
-    router.push('/workout-plan');
-  };
 
   const getFitnessLevelDisplay = (level: string) => {
     const levels = {
@@ -214,14 +213,22 @@ export default function SetupCompleteScreen() {
             </div>
           )}
 
-          {/* Success Message */}
-          {workoutState.currentWorkoutPlan && (
+
+          {/* Notification Message */}
+          {workoutState.notification && (
             <div className="p-6">
               <Alert>
-                <CheckCircle className="h-4 w-4" />
+                <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  Your personalized workout plan has been generated successfully! 
-                  You can now start your fitness journey.
+                  {workoutState.notification}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearNotification}
+                    className="ml-2"
+                  >
+                    Dismiss
+                  </Button>
                 </AlertDescription>
               </Alert>
             </div>
@@ -229,41 +236,23 @@ export default function SetupCompleteScreen() {
 
           {/* Action Buttons */}
           <div className="text-center space-y-4 p-6">
-            {!workoutState.currentWorkoutPlan ? (
-              <Button
-                onClick={handleStartWorkout}
-                disabled={workoutState.isGenerating}
-                className="w-full md:w-auto h-12 text-base font-medium"
-                size="lg"
-              >
-                {workoutState.isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating Your Workout Plan...
-                  </>
-                ) : (
-                  'Generate Your Workout Plan'
-                )}
-              </Button>
-            ) : (
-              <div className="space-y-3">
-                <Button
-                  onClick={handleViewWorkoutPlan}
-                  className="w-full md:w-auto h-12 text-base font-medium"
-                  size="lg"
-                >
-                  View Your Workout Plan
-                </Button>
-                <Button
-                  onClick={handleStartWorkout}
-                  variant="outline"
-                  className="w-full md:w-auto h-10 text-base font-medium"
-                  size="lg"
-                >
-                  Regenerate Workout Plan
-                </Button>
-              </div>
-            )}
+            <Button
+              onClick={handleStartWorkout}
+              disabled={workoutState.isGenerating}
+              className="w-full md:w-auto h-12 text-base font-medium"
+              size="lg"
+            >
+              {workoutState.isGenerating ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating Your Workout Plan...
+                </>
+              ) : workoutState.currentWorkoutPlan ? (
+                'Regenerate Workout Plan'
+              ) : (
+                'Generate Your Workout Plan'
+              )}
+            </Button>
             
             <div className="text-sm text-muted-foreground">
               You can always update your preferences in the settings
