@@ -37,103 +37,16 @@ async function retryWithBackoff<T>(
   throw new Error("Max retries exceeded");
 }
 
-// Advanced JSON repair function
-function repairJsonString(jsonString: string): string {
-  let repaired = jsonString;
-
-  // Remove any non-JSON content before the first {
-  const firstBrace = repaired.indexOf("{");
-  if (firstBrace > 0) {
-    repaired = repaired.substring(firstBrace);
+// Function to validate JSON response (simplified since Gemini now returns clean JSON)
+function validateJsonResponse(response: string): boolean {
+  try {
+    JSON.parse(response);
+    return true;
+  } catch {
+    return false;
   }
-
-  // Remove any content after the last }
-  const lastBrace = repaired.lastIndexOf("}");
-  if (lastBrace !== -1 && lastBrace < repaired.length - 1) {
-    repaired = repaired.substring(0, lastBrace + 1);
-  }
-
-  // Fix common JSON issues with a more systematic approach
-  repaired = repaired
-    // Remove any markdown formatting that might have leaked in
-    .replace(/```json\s*/g, "")
-    .replace(/```\s*/g, "")
-    // Fix missing commas between array elements more aggressively
-    .replace(/"\s*\n\s*"/g, '",\n"')  // Missing comma between quoted strings
-    .replace(/"\s*\n\s*\[/g, '",\n[')  // Missing comma between string and array
-    .replace(/"\s*\n\s*{/g, '",\n{')   // Missing comma between string and object
-    .replace(/}\s*\n\s*"/g, '},\n"')   // Missing comma between object and string
-    .replace(/]\s*\n\s*"/g, '],\n"')   // Missing comma between array and string
-    .replace(/}\s*\n\s*\[/g, '},\n[')  // Missing comma between object and array
-    .replace(/]\s*\n\s*\[/g, '],\n[')  // Missing comma between array and array
-    .replace(/}\s*\n\s*{/g, '},\n{')   // Missing comma between object and object
-    .replace(/]\s*\n\s*{/g, '],\n{')   // Missing comma between array and object
-    // Fix missing commas in single-line contexts
-    .replace(/}\s*{/g, "}, {")
-    .replace(/\]\s*\[/g, "], [")
-    .replace(/}\s*\[/g, "}, [")
-    .replace(/\]\s*{/g, "], {")
-    // Fix missing commas after numeric values
-    .replace(/(\d+)\s*\n\s*"/g, '$1,\n"')
-    .replace(/(\d+)\s*\n\s*{/g, '$1,\n{')
-    .replace(/(\d+)\s*\n\s*\[/g, '$1,\n[')
-    // Remove trailing commas before closing brackets/braces
-    .replace(/,(\s*[}\]])/g, "$1")
-    // Fix unquoted keys - more comprehensive pattern
-    .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
-    // Fix unquoted string values (but not numbers, booleans, null)
-    .replace(
-      /:\s*([a-zA-Z_][a-zA-Z0-9_\s\-'.,!]*?)(\s*[,}\]\n])/g,
-      (match: string, value: string, ending: string) => {
-        const trimmed = value.trim();
-        // Don't quote if it's a number, boolean, null, or already quoted
-        if (
-          /^\d+(\.\d+)?$/.test(trimmed) ||
-          trimmed === "true" ||
-          trimmed === "false" ||
-          trimmed === "null" ||
-          trimmed.startsWith('"') ||
-          trimmed.startsWith('[') ||
-          trimmed.startsWith('{')
-        ) {
-          return `: ${trimmed}${ending}`;
-        }
-        // Escape any quotes in the value
-        const escapedValue = trimmed.replace(/"/g, '\\"');
-        return `: "${escapedValue}"${ending}`;
-      }
-    )
-    // Handle multi-line string values that might be broken
-    .replace(/:\s*"([^"]*)\n([^"]*)"(\s*[,}\]])/g, ': "$1 $2"$3')
-    // Remove extra spaces around colons
-    .replace(/:\s+/g, ": ")
-    // Remove extra spaces around commas
-    .replace(/\s*,\s*/g, ", ")
-    // Fix any double commas
-    .replace(/,,+/g, ",")
-    // Remove trailing commas one more time
-    .replace(/,(\s*[}\]])/g, "$1")
-    // Remove any stray characters that might cause issues
-    .replace(/([}\]])\s*[^,}\]\s][^,}\]]*?([,}\]])/g, '$1$2');
-
-  // Try to balance brackets and braces
-  const openBraces = (repaired.match(/\{/g) || []).length;
-  const closeBraces = (repaired.match(/\}/g) || []).length;
-  const openBrackets = (repaired.match(/\[/g) || []).length;
-  const closeBrackets = (repaired.match(/\]/g) || []).length;
-
-  // Close incomplete arrays
-  for (let i = 0; i < openBrackets - closeBrackets; i++) {
-    repaired += "]";
-  }
-
-  // Close incomplete objects
-  for (let i = 0; i < openBraces - closeBraces; i++) {
-    repaired += "}";
-  }
-
-  return repaired;
 }
+
 
 // Function to normalize exercise data structure
 function normalizeExercise(exercise: Partial<Exercise> & Record<string, unknown>): Exercise {
@@ -160,7 +73,7 @@ function normalizeExercise(exercise: Partial<Exercise> & Record<string, unknown>
   };
 }
 
-// Function to generate workout plan using Gemini 2.5 Turbo
+// Function to generate workout plan using Gemini 2.5 Turbo with strict JSON validation
 async function generateWorkoutWithGemini(
   userProfile: WorkoutGenerationRequest["userProfile"]
 ): Promise<string> {
@@ -169,18 +82,63 @@ async function generateWorkoutWithGemini(
   }
 
   const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = genAI.getGenerativeModel({ 
+    model: "gemini-2.5-flash",
+    generationConfig: {
+      temperature: 0.1, // Lower temperature for more consistent output
+      topP: 0.8,
+      topK: 40,
+      maxOutputTokens: 8000,
+      responseMimeType: "application/json", // Force JSON response
+    },
+    systemInstruction: "You are a professional fitness trainer. You MUST respond with ONLY valid JSON. No markdown, no explanations, no code blocks. Your response must be parseable JSON that starts with { and ends with }. All keys and string values must be in double quotes. No trailing commas allowed."
+  });
 
   const prompt = createWorkoutPrompt(userProfile);
 
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
-  } catch (error) {
-    console.error("Gemini API error:", error);
-    throw new Error(`Gemini API error: ${error instanceof Error ? error.message : String(error)}`);
+  // Retry logic with JSON validation
+  const maxRetries = 3;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      console.log(`Gemini attempt ${attempt + 1}/${maxRetries}`);
+      
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+
+      // Validate JSON before returning
+      if (validateJsonResponse(text)) {
+        console.log(`Gemini attempt ${attempt + 1} successful - valid JSON`);
+        return text;
+      } else {
+        console.warn(`Gemini attempt ${attempt + 1} - invalid JSON, retrying...`);
+        lastError = new Error("Invalid JSON response");
+        
+        if (attempt === maxRetries - 1) {
+          throw new Error(`Gemini returned invalid JSON after ${maxRetries} attempts`);
+        }
+        
+        // Add a small delay before retry
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        continue;
+      }
+    } catch (error) {
+      console.error(`Gemini attempt ${attempt + 1} failed:`, error);
+      lastError = error as Error;
+      
+      if (attempt === maxRetries - 1) {
+        throw new Error(`Gemini API error after ${maxRetries} attempts: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      
+      // Add exponential backoff
+      const delay = 1000 * Math.pow(2, attempt);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
   }
+
+  throw lastError || new Error("Gemini API failed after all retries");
 }
 
 // Function to enhance exercises with YouTube videos
@@ -321,232 +279,27 @@ export async function POST(request: NextRequest) {
       console.log(`Raw ${aiProvider} response length:`, text.length);
       console.log(`Raw ${aiProvider} response preview:`, text.substring(0, 500) + "...");
 
-      // Try to find and extract JSON from the response
-      let jsonString = text.trim();
-
-      // Remove any markdown code blocks
-      jsonString = jsonString.replace(/```json\s*/g, "").replace(/```\s*/g, "");
-
-      // Try to find JSON object boundaries more precisely
-      const jsonStart = jsonString.indexOf("{");
-      const jsonEnd = jsonString.lastIndexOf("}");
-
-      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-        jsonString = jsonString.substring(jsonStart, jsonEnd + 1);
-      }
-
-      // Check if the JSON appears to be truncated
-      const openBraces = (jsonString.match(/\{/g) || []).length;
-      const closeBraces = (jsonString.match(/\}/g) || []).length;
-      const openBrackets = (jsonString.match(/\[/g) || []).length;
-      const closeBrackets = (jsonString.match(/\]/g) || []).length;
-
-      if (openBraces > closeBraces || openBrackets > closeBrackets) {
-        console.warn("JSON appears to be truncated, attempting to fix...");
-
-        // Try to close incomplete structures
-        let fixedJson = jsonString;
-
-        // Close incomplete arrays
-        for (let i = 0; i < openBrackets - closeBrackets; i++) {
-          fixedJson += "]";
-        }
-
-        // Close incomplete objects
-        for (let i = 0; i < openBraces - closeBraces; i++) {
-          fixedJson += "}";
-        }
-
-        jsonString = fixedJson;
-      }
-
-      // Use iterative JSON repair with validation
-      let attempts = 0;
-      const maxAttempts = 5;
-      let lastError: Error | null = null;
-
-      while (attempts < maxAttempts) {
-        try {
-          // Apply repair function
-          jsonString = repairJsonString(jsonString);
-          
-          console.log(`Repair attempt ${attempts + 1}, JSON length:`, jsonString.length);
-          console.log("JSON preview:", jsonString.substring(0, 500) + "...");
-
-          // Try to parse
-          workoutPlanData = JSON.parse(jsonString);
-          console.log("JSON parsing successful!");
-          break;
-        } catch (parseError) {
-          lastError = parseError as Error;
-          attempts++;
-          console.warn(`Parse attempt ${attempts} failed:`, parseError);
-          
-          // Log specific error location for debugging
-          if (parseError instanceof SyntaxError && parseError.message.includes("position")) {
-            const position = parseError.message.match(/position (\d+)/)?.[1];
-            if (position) {
-              const pos = parseInt(position);
-              const context = jsonString.substring(Math.max(0, pos - 50), pos + 50);
-              console.log(`Error context around position ${pos}:`, context);
-            }
-          }
-          
-          if (attempts < maxAttempts) {
-            // Additional repair strategies for specific errors
-            const errorMessage = lastError.message.toLowerCase();
-            
-            if (errorMessage.includes("expected ',' or ']' after array element")) {
-              // More aggressive comma insertion for array elements
-              jsonString = jsonString
-                .replace(/"\s*\n\s*"/g, '",\n"')
-                .replace(/"\s*\n\s*\[/g, '",\n[')
-                .replace(/"\s*\n\s*{/g, '",\n{')
-                .replace(/}\s*\n\s*"/g, '},\n"')
-                .replace(/]\s*\n\s*"/g, '],\n"')
-                .replace(/}\s*\n\s*\[/g, '},\n[')
-                .replace(/]\s*\n\s*\[/g, '],\n[')
-                .replace(/}\s*\n\s*{/g, '},\n{')
-                .replace(/]\s*\n\s*{/g, '],\n{');
-            }
-          }
-        }
-      }
-
-      if (attempts >= maxAttempts) {
-        throw lastError || new Error("Failed to parse JSON after multiple repair attempts");
-      }
+      // Parse JSON directly since Gemini now returns clean JSON
+      workoutPlanData = JSON.parse(text);
+      console.log("JSON parsing successful!");
     } catch (parseError: unknown) {
       console.error(`Error parsing ${aiProvider} response:`, parseError);
       console.error("Raw response length:", text.length);
       console.error("Raw response preview:", text.substring(0, 1000));
 
-      // Try a more aggressive JSON extraction and repair
-      try {
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          let rawJson = jsonMatch[0];
-          console.log(
-            "Attempting to parse raw JSON match length:",
-            rawJson.length
-          );
-
-          // Use the advanced repair function
-          rawJson = repairJsonString(rawJson);
-
-          console.log(
-            "Repaired JSON preview:",
-            rawJson.substring(0, 500) + "..."
-          );
-          workoutPlanData = JSON.parse(rawJson);
-        } else {
-          throw new Error("No JSON object found in response");
-        }
-      } catch (secondParseError: unknown) {
-        console.error("Second parse attempt failed:", secondParseError);
-
-        // Try a third attempt with more aggressive repair
-        try {
-          console.log("Attempting third parse with aggressive repair...");
-          let aggressiveRepair = text;
-
-          // Extract just the JSON part
-          const jsonStart = aggressiveRepair.indexOf("{");
-          const jsonEnd = aggressiveRepair.lastIndexOf("}");
-
-          if (jsonStart !== -1 && jsonEnd !== -1) {
-            aggressiveRepair = aggressiveRepair.substring(
-              jsonStart,
-              jsonEnd + 1
-            );
-          }
-
-          // More aggressive repairs
-          aggressiveRepair = aggressiveRepair
-            // Remove any potential markdown or formatting
-            .replace(/```json\s*/g, "")
-            .replace(/```\s*/g, "")
-            // Fix missing commas after values
-            .replace(/"\s*\n\s*"/g, '",\n"')
-            .replace(/(\d+)\s*\n\s*"/g, '$1,\n"')
-            .replace(/(\d+)\s*\n\s*{/g, '$1,\n{')
-            .replace(/(\d+)\s*\n\s*\[/g, '$1,\n[')
-            .replace(/}\s*\n\s*"/g, '},\n"')
-            .replace(/}\s*\n\s*{/g, '},\n{')
-            .replace(/]\s*\n\s*"/g, '],\n"')
-            .replace(/]\s*\n\s*{/g, '],\n{')
-            .replace(/]\s*\n\s*\[/g, '],\n[')
-            // Remove trailing commas
-            .replace(/,(\s*[}\]])/g, "$1")
-            // Quote all unquoted keys
-            .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
-            // Quote unquoted string values
-            .replace(
-              /:\s*([a-zA-Z_][a-zA-Z0-9_\s\-'.,!]*?)(\s*[,}\]\n])/g,
-              (match: string, value: string, ending: string) => {
-                const trimmed = value.trim();
-                if (
-                  /^\d+(\.\d+)?$/.test(trimmed) ||
-                  trimmed === "true" ||
-                  trimmed === "false" ||
-                  trimmed === "null" ||
-                  trimmed.startsWith('"') ||
-                  trimmed.startsWith('[') ||
-                  trimmed.startsWith('{')
-                ) {
-                  return `: ${trimmed}${ending}`;
-                }
-                const escapedValue = trimmed.replace(/"/g, '\\"');
-                return `: "${escapedValue}"${ending}`;
-              }
-            )
-            // Handle broken multi-line strings
-            .replace(/:\s*"([^"]*)\n([^"]*)"(\s*[,}\]])/g, ': "$1 $2"$3')
-            // Clean up spacing
-            .replace(/:\s+/g, ": ")
-            .replace(/\s*,\s*/g, ", ")
-            // Remove double commas
-            .replace(/,,+/g, ",")
-            // Final cleanup of trailing commas
-            .replace(/,(\s*[}\]])/g, "$1")
-            // Remove stray characters
-            .replace(/([}\]])\s*[^,}\]\s][^,}\]]*?([,}\]])/g, '$1$2');
-
-          console.log(
-            "Aggressive repair preview:",
-            aggressiveRepair.substring(0, 500) + "..."
-          );
-          workoutPlanData = JSON.parse(aggressiveRepair);
-        } catch (thirdParseError: unknown) {
-          console.error("Third parse attempt failed:", thirdParseError);
-
-          return NextResponse.json(
-            {
-              success: false,
-              error:
-                `Failed to parse workout plan from ${aiProvider} response. The AI response may be too long or malformed.`,
-              debug: {
-                aiProvider,
-                rawResponseLength: text.length,
-                rawResponsePreview: text.substring(0, 1000),
-                parseError:
-                  parseError instanceof Error
-                    ? parseError.message
-                    : String(parseError),
-                secondParseError:
-                  secondParseError instanceof Error
-                    ? secondParseError.message
-                    : String(secondParseError),
-                thirdParseError:
-                  thirdParseError instanceof Error
-                    ? thirdParseError.message
-                    : String(thirdParseError),
-              },
-            },
-            { status: 500 }
-          );
-        }
-      }
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Failed to parse workout plan from ${aiProvider} response. The AI response may be malformed.`,
+          debug: {
+            aiProvider,
+            rawResponseLength: text.length,
+            rawResponsePreview: text.substring(0, 1000),
+            parseError: parseError instanceof Error ? parseError.message : String(parseError),
+          },
+        },
+        { status: 500 }
+      );
     }
 
     // Enhance exercises with YouTube videos
@@ -611,7 +364,7 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error("Error generating workout plan:", error);
 
-    const errorObj = error as { status?: number; message?: string };
+    const errorObj = error as { status?: number; message?: sftring };
 
     return NextResponse.json(
       {
@@ -676,6 +429,20 @@ EXERCISE GUIDELINES:
    - Beginner: 4-6 exercises per day
    - Intermediate: 5-8 exercises per day
    - Advanced: 6-8 exercises per day (ABSOLUTE MINIMUM 5). Never return only 2-3 exercises for advanced plans.
+
+CRITICAL JSON FORMATTING REQUIREMENTS:
+- You MUST respond with ONLY valid JSON
+- NO markdown formatting, NO code blocks, NO explanations before or after the JSON
+- ALL JSON keys MUST be wrapped in double quotes
+- ALL string values MUST be wrapped in double quotes
+- NO trailing commas anywhere in the JSON
+- NO single quotes, only double quotes
+- NO comments in the JSON
+- The JSON must start with { and end with }
+- Every array and object must be properly closed
+- All numbers must be unquoted
+- All booleans must be unquoted (true/false)
+- Escape any quotes inside string values with backslash
 
 RESPONSE FORMAT:
 Return ONLY valid JSON with this exact structure:
@@ -746,9 +513,7 @@ Return ONLY valid JSON with this exact structure:
             "Step 3: Hold position",
             "Step 4: Release"
           ],
-          "difficulty": "beginner",
-          "videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID",
-          "videoThumbnail": "https://img.youtube.com/vi/VIDEO_ID/maxresdefault.jpg"
+          "difficulty": "beginner"
         }
       ],
       "notes": "Workout-specific notes and tips"
@@ -756,19 +521,26 @@ Return ONLY valid JSON with this exact structure:
   ]
 }
 
-CRITICAL REQUIREMENTS:
-- Return ONLY valid JSON, no markdown, no code blocks, no explanations
-- Ensure all JSON keys are properly quoted with double quotes
-- No trailing commas in arrays or objects
-- All string values must be in double quotes
-- Focus on clear, descriptive exercise names for automatic video matching
-- Ensure all exercises match the user's fitness level
-- Enforce exercise counts from the guidelines above based on fitness level
-- Vary workout focus (upper body, lower body, cardio, full body)
-- Make exercises progressive and challenging
-- Include proper warm-up and cool-down for each day
-- Use only the specified equipment: ${userProfile.equipment}
-- Focus on the user's goals: ${userProfile.goals.join(", ")}
+VALIDATION CHECKLIST:
+Before responding, verify your JSON:
+✓ Starts with { and ends with }
+✓ All keys are in double quotes
+✓ All string values are in double quotes
+✓ No trailing commas
+✓ All arrays and objects are properly closed
+✓ No markdown formatting
+✓ No explanations or text outside the JSON
+✓ Numbers and booleans are unquoted
+✓ All quotes inside strings are escaped
+
+Focus on clear, descriptive exercise names for automatic video matching
+Ensure all exercises match the user's fitness level
+Enforce exercise counts from the guidelines above based on fitness level
+Vary workout focus (upper body, lower body, cardio, full body)
+Make exercises progressive and challenging
+Include proper warm-up and cool-down for each day
+Use only the specified equipment: ${userProfile.equipment}
+Focus on the user's goals: ${userProfile.goals.join(", ")}
 
 EXAMPLE VALID JSON FORMAT:
 {
