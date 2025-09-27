@@ -63,21 +63,21 @@ export default function PersonalInfoScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-light-gray to-pure-white p-4 relative overflow-hidden">
       {/* Background decoration */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 via-indigo-400/3 to-cyan-400/5"></div>
-      <div className="absolute top-10 right-20 w-24 h-24 bg-blue-400/10 rounded-full blur-xl"></div>
-      <div className="absolute bottom-10 left-20 w-32 h-32 bg-cyan-400/10 rounded-full blur-xl"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-primary-orange/5 via-neutral-blue/3 to-success-green/5"></div>
+      <div className="absolute top-10 right-20 w-24 h-24 bg-primary-orange/10 rounded-full blur-xl"></div>
+      <div className="absolute bottom-10 left-20 w-32 h-32 bg-success-green/10 rounded-full blur-xl"></div>
       
       <div className="max-w-2xl mx-auto px-2 relative">
         <ProgressStepper currentStep={2} totalSteps={7} className="mb-8" />
         
         <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-sm animate-fade-in-up">
           <CardHeader className="text-center pb-4 pt-6">
-            <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+            <CardTitle className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-orange to-neutral-blue bg-clip-text text-transparent">
               Tell us about yourself
             </CardTitle>
-            <CardDescription className="text-base sm:text-lg text-gray-600 font-medium">
+            <CardDescription className="text-base sm:text-lg text-primary font-medium">
               This helps us create your personalized fitness plan
             </CardDescription>
           </CardHeader>
@@ -147,9 +147,9 @@ export default function PersonalInfoScreen() {
             </div>
 
             {/* Unit System Toggle */}
-            <div className="flex items-center justify-center space-x-4 p-6 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl border border-blue-200/50">
+            <div className="flex items-center justify-center space-x-4 p-6 bg-gradient-to-r from-primary-orange/10 to-neutral-blue/10 rounded-2xl border border-primary-orange/20">
               <Label htmlFor="unit-system" className={`text-sm font-semibold transition-colors duration-300 ${
-                state.data.unitSystem === 'metric' ? 'text-blue-600' : 'text-gray-500'
+                state.data.unitSystem === 'metric' ? 'text-primary-orange' : 'text-secondary'
               }`}>
                 Metric
               </Label>
@@ -157,10 +157,10 @@ export default function PersonalInfoScreen() {
                 id="unit-system"
                 checked={state.data.unitSystem === 'imperial'}
                 onCheckedChange={toggleUnitSystem}
-                className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-blue-500 data-[state=checked]:to-cyan-500"
+                className="data-[state=checked]:bg-gradient-primary"
               />
               <Label htmlFor="unit-system" className={`text-sm font-semibold transition-colors duration-300 ${
-                state.data.unitSystem === 'imperial' ? 'text-blue-600' : 'text-gray-500'
+                state.data.unitSystem === 'imperial' ? 'text-primary-orange' : 'text-secondary'
               }`}>
                 Imperial
               </Label>
@@ -257,13 +257,13 @@ export default function PersonalInfoScreen() {
             <Button
               onClick={handleBack}
               variant="ghost"
-              className="px-8 h-12 text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-all duration-300"
+              className="px-8 h-12 text-primary hover:text-primary-orange hover:bg-primary-orange/10 transition-all duration-300"
             >
               ← Back
             </Button>
             <Button
               onClick={handleNext}
-              className="px-10 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              className="px-10 h-12 bg-gradient-primary hover:from-primary-orange-dark hover:to-primary-orange shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
               size="lg"
             >
               Next →

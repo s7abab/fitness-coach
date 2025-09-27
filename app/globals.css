@@ -151,71 +151,105 @@ input, select, textarea, button {
 
 :root {
   --radius: 0.75rem;
-  --background: oklch(0.99 0.005 106.423);
-  --foreground: oklch(0.15 0.02 106.423);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.02 106.423);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.02 106.423);
-  --primary: oklch(0.55 0.15 200);
-  --primary-foreground: oklch(0.98 0.01 200);
-  --secondary: oklch(0.96 0.02 106.423);
-  --secondary-foreground: oklch(0.15 0.02 106.423);
-  --muted: oklch(0.96 0.02 106.423);
-  --muted-foreground: oklch(0.5 0.02 106.423);
-  --accent: oklch(0.92 0.05 200);
-  --accent-foreground: oklch(0.15 0.02 106.423);
-  --destructive: oklch(0.65 0.2 15);
-  --border: oklch(0.9 0.02 106.423);
-  --input: oklch(0.9 0.02 106.423);
-  --ring: oklch(0.55 0.15 200);
-  --chart-1: oklch(0.6 0.2 200);
-  --chart-2: oklch(0.7 0.15 160);
-  --chart-3: oklch(0.65 0.2 280);
-  --chart-4: oklch(0.75 0.15 40);
-  --chart-5: oklch(0.7 0.2 320);
-  --sidebar: oklch(0.98 0.01 106.423);
-  --sidebar-foreground: oklch(0.15 0.02 106.423);
-  --sidebar-primary: oklch(0.55 0.15 200);
-  --sidebar-primary-foreground: oklch(0.98 0.01 200);
-  --sidebar-accent: oklch(0.96 0.02 106.423);
-  --sidebar-accent-foreground: oklch(0.15 0.02 106.423);
-  --sidebar-border: oklch(0.9 0.02 106.423);
-  --sidebar-ring: oklch(0.55 0.15 200);
+  
+  /* Clean Fitness Color Palette */
+  --primary-orange: #FF6B35;
+  --primary-orange-light: #FF8A65;
+  --primary-orange-dark: #E55A2B;
+  
+  --success-green: #2ECC71;
+  --success-green-light: #58D68D;
+  --success-green-dark: #27AE60;
+  
+  --neutral-blue: #3498DB;
+  --neutral-blue-light: #5DADE2;
+  --neutral-blue-dark: #2980B9;
+  
+  --text-primary: #2C3E50;
+  --text-secondary: #6C757D;
+  --text-muted: #ADB5BD;
+  
+  /* Neutral Colors */
+  --pure-white: #FFFFFF;
+  --light-gray: #F8F9FA;
+  --medium-gray: #6C757D;
+  --dark-gray: #343A40;
+  
+  /* Semantic Colors */
+  --background: var(--pure-white);
+  --foreground: var(--text-primary);
+  --card: var(--pure-white);
+  --card-foreground: var(--text-primary);
+  --popover: var(--pure-white);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--primary-orange);
+  --primary-foreground: var(--pure-white);
+  --secondary: var(--light-gray);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--light-gray);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--neutral-blue);
+  --accent-foreground: var(--pure-white);
+  --destructive: #E74C3C;
+  --border: #E9ECEF;
+  --input: #E9ECEF;
+  --ring: var(--primary-orange);
+  
+  /* Chart Colors - Clean and Simple */
+  --chart-1: var(--primary-orange);
+  --chart-2: var(--success-green);
+  --chart-3: var(--neutral-blue);
+  --chart-4: var(--text-secondary);
+  --chart-5: var(--text-muted);
+  
+  /* Sidebar Colors */
+  --sidebar: var(--light-gray);
+  --sidebar-foreground: var(--text-primary);
+  --sidebar-primary: var(--primary-orange);
+  --sidebar-primary-foreground: var(--pure-white);
+  --sidebar-accent: var(--neutral-blue);
+  --sidebar-accent-foreground: var(--pure-white);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--primary-orange);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Dark mode clean theme */
+  --background: #1A1A1A;
+  --foreground: #F8F9FA;
+  --card: #2C2C2C;
+  --card-foreground: #F8F9FA;
+  --popover: #2C2C2C;
+  --popover-foreground: #F8F9FA;
+  --primary: var(--primary-orange);
+  --primary-foreground: var(--pure-white);
+  --secondary: #3C3C3C;
+  --secondary-foreground: #F8F9FA;
+  --muted: #3C3C3C;
+  --muted-foreground: #ADB5BD;
+  --accent: var(--neutral-blue);
+  --accent-foreground: var(--pure-white);
+  --destructive: #E74C3C;
+  --border: #404040;
+  --input: #404040;
+  --ring: var(--primary-orange);
+  
+  /* Chart Colors for Dark Mode */
+  --chart-1: var(--primary-orange);
+  --chart-2: var(--success-green);
+  --chart-3: var(--neutral-blue);
+  --chart-4: var(--text-secondary);
+  --chart-5: var(--text-muted);
+  
+  /* Sidebar Colors for Dark Mode */
+  --sidebar: #2C2C2C;
+  --sidebar-foreground: #F8F9FA;
+  --sidebar-primary: var(--primary-orange);
+  --sidebar-primary-foreground: var(--pure-white);
+  --sidebar-accent: var(--neutral-blue);
+  --sidebar-accent-foreground: var(--pure-white);
+  --sidebar-border: #404040;
+  --sidebar-ring: var(--primary-orange);
 }
 
 @layer base {
@@ -225,4 +259,39 @@ input, select, textarea, button {
 body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Clean Fitness Utility Classes */
+@layer utilities {
+  /* Primary Orange */
+  .text-primary-orange { color: var(--primary-orange); }
+  .bg-primary-orange { background-color: var(--primary-orange); }
+  .border-primary-orange { border-color: var(--primary-orange); }
+  .hover\:bg-primary-orange:hover { background-color: var(--primary-orange); }
+  .hover\:text-primary-orange:hover { color: var(--primary-orange); }
+  
+  /* Success Green */
+  .text-success-green { color: var(--success-green); }
+  .bg-success-green { background-color: var(--success-green); }
+  .border-success-green { border-color: var(--success-green); }
+  .hover\:bg-success-green:hover { background-color: var(--success-green); }
+  .hover\:text-success-green:hover { color: var(--success-green); }
+  
+  /* Neutral Blue */
+  .text-neutral-blue { color: var(--neutral-blue); }
+  .bg-neutral-blue { background-color: var(--neutral-blue); }
+  .border-neutral-blue { border-color: var(--neutral-blue); }
+  .hover\:bg-neutral-blue:hover { background-color: var(--neutral-blue); }
+  .hover\:text-neutral-blue:hover { color: var(--neutral-blue); }
+  
+  /* Text Colors */
+  .text-primary { color: var(--text-primary); }
+  .text-secondary { color: var(--text-secondary); }
+  .text-muted { color: var(--text-muted); }
+  
+  /* Clean Gradients */
+  .bg-gradient-primary { background: linear-gradient(135deg, var(--primary-orange), var(--primary-orange-light)); }
+  .bg-gradient-success { background: linear-gradient(135deg, var(--success-green), var(--success-green-light)); }
+  .bg-gradient-neutral { background: linear-gradient(135deg, var(--neutral-blue), var(--neutral-blue-light)); }
+  .bg-gradient-clean { background: linear-gradient(135deg, var(--primary-orange), var(--neutral-blue)); }
 }
