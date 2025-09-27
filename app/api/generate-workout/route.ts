@@ -4,6 +4,7 @@ import {
   WorkoutGenerationResponse,
   WorkoutPlan,
   WorkoutDay,
+  Exercise,
 } from "@/lib/types/workout";
 import { youtubeAPI } from "@/lib/youtube-api";
 
@@ -51,53 +52,68 @@ function repairJsonString(jsonString: string): string {
     repaired = repaired.substring(0, lastBrace + 1);
   }
 
-  // Fix common JSON issues
+  // Fix common JSON issues with a more systematic approach
   repaired = repaired
+    // Remove any markdown formatting that might have leaked in
+    .replace(/```json\s*/g, "")
+    .replace(/```\s*/g, "")
+    // Fix missing commas between array elements more aggressively
+    .replace(/"\s*\n\s*"/g, '",\n"')  // Missing comma between quoted strings
+    .replace(/"\s*\n\s*\[/g, '",\n[')  // Missing comma between string and array
+    .replace(/"\s*\n\s*{/g, '",\n{')   // Missing comma between string and object
+    .replace(/}\s*\n\s*"/g, '},\n"')   // Missing comma between object and string
+    .replace(/]\s*\n\s*"/g, '],\n"')   // Missing comma between array and string
+    .replace(/}\s*\n\s*\[/g, '},\n[')  // Missing comma between object and array
+    .replace(/]\s*\n\s*\[/g, '],\n[')  // Missing comma between array and array
+    .replace(/}\s*\n\s*{/g, '},\n{')   // Missing comma between object and object
+    .replace(/]\s*\n\s*{/g, '],\n{')   // Missing comma between array and object
+    // Fix missing commas in single-line contexts
+    .replace(/}\s*{/g, "}, {")
+    .replace(/\]\s*\[/g, "], [")
+    .replace(/}\s*\[/g, "}, [")
+    .replace(/\]\s*{/g, "], {")
+    // Fix missing commas after numeric values
+    .replace(/(\d+)\s*\n\s*"/g, '$1,\n"')
+    .replace(/(\d+)\s*\n\s*{/g, '$1,\n{')
+    .replace(/(\d+)\s*\n\s*\[/g, '$1,\n[')
     // Remove trailing commas before closing brackets/braces
     .replace(/,(\s*[}\]])/g, "$1")
-    // Fix unquoted keys
-    .replace(/(\w+):/g, '"$1":')
+    // Fix unquoted keys - more comprehensive pattern
+    .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
     // Fix unquoted string values (but not numbers, booleans, null)
     .replace(
-      /:\s*([a-zA-Z_][a-zA-Z0-9_\s-]*?)(\s*[,}\]])/g,
+      /:\s*([a-zA-Z_][a-zA-Z0-9_\s\-'.,!]*?)(\s*[,}\]\n])/g,
       (match: string, value: string, ending: string) => {
-        // Don't quote if it's a number, boolean, or null
+        const trimmed = value.trim();
+        // Don't quote if it's a number, boolean, null, or already quoted
         if (
-          /^\d+(\.\d+)?$/.test(value.trim()) ||
-          value.trim() === "true" ||
-          value.trim() === "false" ||
-          value.trim() === "null"
+          /^\d+(\.\d+)?$/.test(trimmed) ||
+          trimmed === "true" ||
+          trimmed === "false" ||
+          trimmed === "null" ||
+          trimmed.startsWith('"') ||
+          trimmed.startsWith('[') ||
+          trimmed.startsWith('{')
         ) {
-          return `: ${value.trim()}${ending}`;
+          return `: ${trimmed}${ending}`;
         }
-        return `: "${value.trim()}"${ending}`;
+        // Escape any quotes in the value
+        const escapedValue = trimmed.replace(/"/g, '\\"');
+        return `: "${escapedValue}"${ending}`;
       }
     )
-    // Fix unquoted string values at the end of objects/arrays
-    .replace(
-      /:\s*([a-zA-Z_][a-zA-Z0-9_\s-]*?)(\s*[}\]])/g,
-      (match: string, value: string, ending: string) => {
-        if (
-          /^\d+(\.\d+)?$/.test(value.trim()) ||
-          value.trim() === "true" ||
-          value.trim() === "false" ||
-          value.trim() === "null"
-        ) {
-          return `: ${value.trim()}${ending}`;
-        }
-        return `: "${value.trim()}"${ending}`;
-      }
-    )
+    // Handle multi-line string values that might be broken
+    .replace(/:\s*"([^"]*)\n([^"]*)"(\s*[,}\]])/g, ': "$1 $2"$3')
     // Remove extra spaces around colons
     .replace(/:\s+/g, ": ")
     // Remove extra spaces around commas
     .replace(/\s*,\s*/g, ", ")
-    // Fix missing commas between array elements
-    .replace(/\]\s*\[/g, "], [")
-    // Fix missing commas between object properties
-    .replace(/}\s*{/g, "}, {")
+    // Fix any double commas
+    .replace(/,,+/g, ",")
     // Remove trailing commas one more time
-    .replace(/,(\s*[}\]])/g, "$1");
+    .replace(/,(\s*[}\]])/g, "$1")
+    // Remove any stray characters that might cause issues
+    .replace(/([}\]])\s*[^,}\]\s][^,}\]]*?([,}\]])/g, '$1$2');
 
   // Try to balance brackets and braces
   const openBraces = (repaired.match(/\{/g) || []).length;
@@ -116,6 +132,31 @@ function repairJsonString(jsonString: string): string {
   }
 
   return repaired;
+}
+
+// Function to normalize exercise data structure
+function normalizeExercise(exercise: Partial<Exercise> & Record<string, unknown>): Exercise {
+  return {
+    name: exercise.name || "Unknown Exercise",
+    description: exercise.description || "Exercise description not available",
+    sets: exercise.sets || 3,
+    reps: exercise.reps || "10-12",
+    restTime: exercise.restTime || "60 seconds",
+    equipment: Array.isArray(exercise.equipment) ? exercise.equipment : 
+               exercise.equipment ? [exercise.equipment] : ["bodyweight"],
+    muscleGroups: Array.isArray(exercise.muscleGroups) ? exercise.muscleGroups :
+                  Array.isArray(exercise.targetMuscles) ? exercise.targetMuscles :
+                  exercise.muscleGroups ? [exercise.muscleGroups] :
+                  exercise.targetMuscles ? [exercise.targetMuscles] : ["full body"],
+    instructions: Array.isArray(exercise.instructions) ? exercise.instructions :
+                  exercise.instructions ? [exercise.instructions] : 
+                  ["Follow proper form and technique for this exercise."],
+    tips: Array.isArray(exercise.tips) ? exercise.tips : 
+          exercise.tips ? [exercise.tips] : undefined,
+    difficulty: exercise.difficulty || "beginner",
+    videoUrl: exercise.videoUrl,
+    videoThumbnail: exercise.videoThumbnail,
+  };
 }
 
 // Function to enhance exercises with YouTube videos
@@ -263,16 +304,62 @@ export async function POST(request: NextRequest) {
         jsonString = fixedJson;
       }
 
-      // Use the advanced repair function
-      jsonString = repairJsonString(jsonString);
+      // Use iterative JSON repair with validation
+      let attempts = 0;
+      const maxAttempts = 5;
+      let lastError: Error | null = null;
 
-      console.log("Cleaned JSON string length:", jsonString.length);
-      console.log(
-        "Cleaned JSON string preview:",
-        jsonString.substring(0, 500) + "..."
-      );
+      while (attempts < maxAttempts) {
+        try {
+          // Apply repair function
+          jsonString = repairJsonString(jsonString);
+          
+          console.log(`Repair attempt ${attempts + 1}, JSON length:`, jsonString.length);
+          console.log("JSON preview:", jsonString.substring(0, 500) + "...");
 
-      workoutPlanData = JSON.parse(jsonString);
+          // Try to parse
+          workoutPlanData = JSON.parse(jsonString);
+          console.log("JSON parsing successful!");
+          break;
+        } catch (parseError) {
+          lastError = parseError as Error;
+          attempts++;
+          console.warn(`Parse attempt ${attempts} failed:`, parseError);
+          
+          // Log specific error location for debugging
+          if (parseError instanceof SyntaxError && parseError.message.includes("position")) {
+            const position = parseError.message.match(/position (\d+)/)?.[1];
+            if (position) {
+              const pos = parseInt(position);
+              const context = jsonString.substring(Math.max(0, pos - 50), pos + 50);
+              console.log(`Error context around position ${pos}:`, context);
+            }
+          }
+          
+          if (attempts < maxAttempts) {
+            // Additional repair strategies for specific errors
+            const errorMessage = lastError.message.toLowerCase();
+            
+            if (errorMessage.includes("expected ',' or ']' after array element")) {
+              // More aggressive comma insertion for array elements
+              jsonString = jsonString
+                .replace(/"\s*\n\s*"/g, '",\n"')
+                .replace(/"\s*\n\s*\[/g, '",\n[')
+                .replace(/"\s*\n\s*{/g, '",\n{')
+                .replace(/}\s*\n\s*"/g, '},\n"')
+                .replace(/]\s*\n\s*"/g, '],\n"')
+                .replace(/}\s*\n\s*\[/g, '},\n[')
+                .replace(/]\s*\n\s*\[/g, '],\n[')
+                .replace(/}\s*\n\s*{/g, '},\n{')
+                .replace(/]\s*\n\s*{/g, '],\n{');
+            }
+          }
+        }
+      }
+
+      if (attempts >= maxAttempts) {
+        throw lastError || new Error("Failed to parse JSON after multiple repair attempts");
+      }
     } catch (parseError: unknown) {
       console.error("Error parsing OpenAI response:", parseError);
       console.error("Raw response length:", text.length);
@@ -320,24 +407,54 @@ export async function POST(request: NextRequest) {
 
           // More aggressive repairs
           aggressiveRepair = aggressiveRepair
-            .replace(/,(\s*[}\]])/g, "$1") // Remove trailing commas
-            .replace(/(\w+):/g, '"$1":') // Quote all keys
+            // Remove any potential markdown or formatting
+            .replace(/```json\s*/g, "")
+            .replace(/```\s*/g, "")
+            // Fix missing commas after values
+            .replace(/"\s*\n\s*"/g, '",\n"')
+            .replace(/(\d+)\s*\n\s*"/g, '$1,\n"')
+            .replace(/(\d+)\s*\n\s*{/g, '$1,\n{')
+            .replace(/(\d+)\s*\n\s*\[/g, '$1,\n[')
+            .replace(/}\s*\n\s*"/g, '},\n"')
+            .replace(/}\s*\n\s*{/g, '},\n{')
+            .replace(/]\s*\n\s*"/g, '],\n"')
+            .replace(/]\s*\n\s*{/g, '],\n{')
+            .replace(/]\s*\n\s*\[/g, '],\n[')
+            // Remove trailing commas
+            .replace(/,(\s*[}\]])/g, "$1")
+            // Quote all unquoted keys
+            .replace(/([{,]\s*)([a-zA-Z_][a-zA-Z0-9_]*)\s*:/g, '$1"$2":')
+            // Quote unquoted string values
             .replace(
-              /:\s*([a-zA-Z_][a-zA-Z0-9_\s-]*?)(\s*[,}\]])/g,
+              /:\s*([a-zA-Z_][a-zA-Z0-9_\s\-'.,!]*?)(\s*[,}\]\n])/g,
               (match: string, value: string, ending: string) => {
                 const trimmed = value.trim();
                 if (
                   /^\d+(\.\d+)?$/.test(trimmed) ||
                   trimmed === "true" ||
                   trimmed === "false" ||
-                  trimmed === "null"
+                  trimmed === "null" ||
+                  trimmed.startsWith('"') ||
+                  trimmed.startsWith('[') ||
+                  trimmed.startsWith('{')
                 ) {
                   return `: ${trimmed}${ending}`;
                 }
-                return `: "${trimmed}"${ending}`;
+                const escapedValue = trimmed.replace(/"/g, '\\"');
+                return `: "${escapedValue}"${ending}`;
               }
             )
-            .replace(/,(\s*[}\]])/g, "$1"); // Final cleanup
+            // Handle broken multi-line strings
+            .replace(/:\s*"([^"]*)\n([^"]*)"(\s*[,}\]])/g, ': "$1 $2"$3')
+            // Clean up spacing
+            .replace(/:\s+/g, ": ")
+            .replace(/\s*,\s*/g, ", ")
+            // Remove double commas
+            .replace(/,,+/g, ",")
+            // Final cleanup of trailing commas
+            .replace(/,(\s*[}\]])/g, "$1")
+            // Remove stray characters
+            .replace(/([}\]])\s*[^,}\]\s][^,}\]]*?([,}\]])/g, '$1$2');
 
           console.log(
             "Aggressive repair preview:",
@@ -385,14 +502,19 @@ export async function POST(request: NextRequest) {
 
     const enhancedDays = await Promise.all(
       (workoutPlanData.days || []).map(async (day: DayLike) => {
+        // Normalize exercise data structures
+        const normalizedWarmup = (day.warmup || []).map(normalizeExercise);
+        const normalizedExercises = (day.exercises || []).map(normalizeExercise);
+        const normalizedCooldown = (day.cooldown || []).map(normalizeExercise);
+
         const enhancedWarmup = await enhanceExercisesWithVideos(
-          day.warmup || []
+          normalizedWarmup
         );
         const enhancedExercises = await enhanceExercisesWithVideos(
-          day.exercises || []
+          normalizedExercises
         );
         const enhancedCooldown = await enhanceExercisesWithVideos(
-          day.cooldown || []
+          normalizedCooldown
         );
 
         return {

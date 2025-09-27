@@ -106,12 +106,22 @@ export default function WorkoutPlanDisplay({ workoutPlan, onRegenerate, isRegene
                   <div className="flex items-center space-x-2">
                     <Dumbbell className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Equipment:</span>
-                    <span className="text-sm">{exercise.equipment.join(', ')}</span>
+                    <span className="text-sm">
+                      {exercise.equipment && Array.isArray(exercise.equipment) 
+                        ? exercise.equipment.join(', ') 
+                        : exercise.equipment || 'No equipment required'}
+                    </span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Users className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm font-medium">Muscles:</span>
-                    <span className="text-sm">{exercise.muscleGroups.join(', ')}</span>
+                    <span className="text-sm">
+                      {exercise.muscleGroups && Array.isArray(exercise.muscleGroups) 
+                        ? exercise.muscleGroups.join(', ') 
+                        : (exercise as any).targetMuscles && Array.isArray((exercise as any).targetMuscles)
+                        ? (exercise as any).targetMuscles.join(', ')
+                        : 'Various muscle groups'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -129,13 +139,17 @@ export default function WorkoutPlanDisplay({ workoutPlan, onRegenerate, isRegene
                 <div>
                   <h4 className="font-medium text-sm mb-2">Instructions:</h4>
                   <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-                    {exercise.instructions.map((instruction, idx) => (
-                      <li key={idx}>{instruction}</li>
-                    ))}
+                    {exercise.instructions && Array.isArray(exercise.instructions) ? (
+                      exercise.instructions.map((instruction, idx) => (
+                        <li key={idx}>{instruction}</li>
+                      ))
+                    ) : (
+                      <li>Follow proper form and technique for this exercise.</li>
+                    )}
                   </ol>
                 </div>
 
-                {exercise.tips && exercise.tips.length > 0 && (
+                {exercise.tips && Array.isArray(exercise.tips) && exercise.tips.length > 0 && (
                   <div>
                     <h4 className="font-medium text-sm mb-2">Tips:</h4>
                     <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
