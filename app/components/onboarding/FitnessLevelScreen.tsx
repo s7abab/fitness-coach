@@ -73,21 +73,16 @@ export default function FitnessLevelScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-cyan-50 p-4 relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 via-indigo-400/3 to-cyan-400/5"></div>
-      <div className="absolute top-20 left-10 w-28 h-28 bg-blue-400/10 rounded-full blur-xl"></div>
-      <div className="absolute bottom-20 right-10 w-36 h-36 bg-cyan-400/10 rounded-full blur-xl"></div>
-      
-      <div className="max-w-4xl mx-auto px-2 relative">
+    <div className="min-h-screen bg-background p-4">
+      <div className="max-w-4xl mx-auto px-2">
         <ProgressStepper currentStep={3} totalSteps={7} className="mb-8" />
         
-        <Card className="shadow-2xl border-0 bg-white/90 backdrop-blur-sm animate-fade-in-up">
+        <Card className="border shadow-sm animate-fade-in">
           <CardHeader className="text-center pb-6 pt-8">
-            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+            <CardTitle className="text-2xl font-bold text-foreground">
               What's your current fitness level?
             </CardTitle>
-            <CardDescription className="text-xl text-gray-600 font-medium">
+            <CardDescription className="text-base text-muted-foreground">
               This helps us tailor the perfect workout intensity for you
             </CardDescription>
           </CardHeader>
@@ -98,10 +93,10 @@ export default function FitnessLevelScreen() {
                 <Card
                   key={level.id}
                   onClick={() => handleLevelSelect(level.id)}
-                  className={`relative cursor-pointer transition-all duration-300 hover:scale-105 ${
+                  className={`relative cursor-pointer transition-colors hover:bg-muted/50 ${
                     state.data.fitnessLevel === level.id
-                      ? 'ring-2 ring-primary shadow-lg'
-                      : 'hover:shadow-md'
+                      ? 'ring-2 ring-primary'
+                      : ''
                   }`}
                 >
                   {/* Selection indicator */}
@@ -113,15 +108,15 @@ export default function FitnessLevelScreen() {
 
                   <CardContent className="p-6">
                     <div className="text-center">
-                      <div className="text-4xl mb-4">{level.icon}</div>
-                      <h3 className="text-xl font-semibold mb-2">{level.title}</h3>
-                      <p className="text-muted-foreground mb-4">{level.description}</p>
+                      <div className="text-3xl mb-3">{level.icon}</div>
+                      <h3 className="text-lg font-semibold mb-2">{level.title}</h3>
+                      <p className="text-sm text-muted-foreground mb-4">{level.description}</p>
                       
-                      <div className="text-left space-y-2">
+                      <div className="text-left space-y-1">
                         {level.details.map((detail, index) => (
                           <div key={index} className="flex items-start space-x-2">
-                            <div className="w-1.5 h-1.5 bg-muted-foreground rounded-full mt-2 flex-shrink-0"></div>
-                            <span className="text-sm text-muted-foreground">{detail}</span>
+                            <div className="w-1 h-1 bg-muted-foreground rounded-full mt-2 flex-shrink-0"></div>
+                            <span className="text-xs text-muted-foreground">{detail}</span>
                           </div>
                         ))}
                       </div>
@@ -132,24 +127,22 @@ export default function FitnessLevelScreen() {
             </div>
 
             {/* Additional Info */}
-            <Card className="bg-muted/50">
-              <CardContent className="p-6">
-                <div className="flex items-start space-x-3">
-                  <div className="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="font-medium mb-1">Don't worry about being perfect!</h4>
-                    <p className="text-sm text-muted-foreground">
-                      You can always adjust your fitness level later as you progress. 
-                      We'll start with workouts that match your current abilities and gradually increase the challenge.
-                    </p>
-                  </div>
+            <div className="bg-muted/50 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <div className="w-5 h-5 bg-muted rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <svg className="w-3 h-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
-              </CardContent>
-            </Card>
+                <div>
+                  <h4 className="text-sm font-medium mb-1 text-foreground">Don't worry about being perfect!</h4>
+                  <p className="text-xs text-muted-foreground">
+                    You can always adjust your fitness level later as you progress. 
+                    We'll start with workouts that match your current abilities.
+                  </p>
+                </div>
+              </div>
+            </div>
           </CardContent>
 
           {/* Navigation Buttons */}
@@ -157,14 +150,14 @@ export default function FitnessLevelScreen() {
             <Button
               onClick={handleBack}
               variant="ghost"
-              className="px-6"
+              className="px-6 h-10"
             >
               ← Back
             </Button>
             <Button
               onClick={handleNext}
               disabled={!state.data.fitnessLevel}
-              className="px-8"
+              className="px-8 h-10"
               size="lg"
             >
               Next →

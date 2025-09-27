@@ -48,47 +48,47 @@ export default function SetupCompleteScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-teal-50 p-4">
+    <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto">
         <ProgressStepper currentStep={7} totalSteps={7} className="mb-8" />
         
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <Card className="border shadow-sm animate-fade-in">
           {/* Success Animation */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-8 p-8">
             <div className={`transition-all duration-1000 ${showAnimation ? 'scale-100 opacity-100' : 'scale-75 opacity-0'}`}>
-              <div className="w-24 h-24 bg-gradient-to-r from-green-400 to-blue-500 rounded-full mx-auto mb-6 flex items-center justify-center animate-pulse">
-                <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-16 h-16 bg-primary rounded-full mx-auto mb-6 flex items-center justify-center">
+                <svg className="w-8 h-8 text-primary-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-2">Setup Complete!</h2>
-              <p className="text-xl text-gray-600">Your AI trainer is ready to help you achieve your goals</p>
+              <h2 className="text-3xl font-bold text-foreground mb-2">Setup Complete!</h2>
+              <p className="text-lg text-muted-foreground">Your AI trainer is ready to help you achieve your goals</p>
             </div>
           </div>
 
           {/* Profile Summary */}
-          <div className="bg-gradient-to-r from-blue-50 to-teal-50 rounded-2xl p-8 mb-8">
-            <h3 className="text-2xl font-semibold text-gray-900 mb-6 text-center">Your Fitness Profile</h3>
+          <div className="bg-muted/50 rounded-lg p-6 mb-8">
+            <h3 className="text-xl font-semibold text-foreground mb-6 text-center">Your Fitness Profile</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Personal Info */}
               <div className="space-y-4">
-                <h4 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">Personal Information</h4>
+                <h4 className="text-base font-medium text-foreground border-b border-border pb-2">Personal Information</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Name:</span>
+                    <span className="text-muted-foreground">Name:</span>
                     <span className="font-medium">{state.data.name}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Age:</span>
+                    <span className="text-muted-foreground">Age:</span>
                     <span className="font-medium">{state.data.age} years old</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Gender:</span>
+                    <span className="text-muted-foreground">Gender:</span>
                     <span className="font-medium capitalize">{state.data.gender.replace('-', ' ')}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Height:</span>
+                    <span className="text-muted-foreground">Height:</span>
                     <span className="font-medium">
                       {state.data.unitSystem === 'metric' 
                         ? `${state.data.height} cm`
@@ -97,7 +97,7 @@ export default function SetupCompleteScreen() {
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Weight:</span>
+                    <span className="text-muted-foreground">Weight:</span>
                     <span className="font-medium">
                       {state.data.unitSystem === 'metric' 
                         ? `${state.data.weight} kg`
@@ -110,26 +110,26 @@ export default function SetupCompleteScreen() {
 
               {/* Fitness Profile */}
               <div className="space-y-4">
-                <h4 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2">Fitness Profile</h4>
+                <h4 className="text-base font-medium text-foreground border-b border-border pb-2">Fitness Profile</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Level:</span>
+                    <span className="text-muted-foreground">Level:</span>
                     <span className="font-medium">{getFitnessLevelDisplay(state.data.fitnessLevel)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Duration:</span>
+                    <span className="text-muted-foreground">Duration:</span>
                     <span className="font-medium">{state.data.workoutDuration} minutes</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Time:</span>
+                    <span className="text-muted-foreground">Time:</span>
                     <span className="font-medium capitalize">{state.data.workoutTime}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Equipment:</span>
+                    <span className="text-muted-foreground">Equipment:</span>
                     <span className="font-medium capitalize">{state.data.equipment.replace('-', ' ')}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Days:</span>
+                    <span className="text-muted-foreground">Days:</span>
                     <span className="font-medium">{state.data.availableDays.length} days/week</span>
                   </div>
                 </div>
@@ -138,20 +138,17 @@ export default function SetupCompleteScreen() {
 
             {/* Goals */}
             <div className="mt-6">
-              <h4 className="text-lg font-medium text-gray-900 border-b border-gray-200 pb-2 mb-3">Your Goals</h4>
+              <h4 className="text-base font-medium text-foreground border-b border-border pb-2 mb-3">Your Goals</h4>
               <div className="flex flex-wrap gap-2">
                 {getGoalsDisplay(state.data.goals).map((goal, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
-                  >
+                  <Badge key={index} variant="secondary" className="text-xs">
                     {goal}
-                  </span>
+                  </Badge>
                 ))}
                 {state.data.customGoal && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-teal-100 text-teal-800">
+                  <Badge variant="secondary" className="text-xs">
                     {state.data.customGoal}
-                  </span>
+                  </Badge>
                 )}
               </div>
             </div>
@@ -159,9 +156,9 @@ export default function SetupCompleteScreen() {
 
           {/* Motivational Message */}
           <div className="text-center mb-8">
-            <div className="bg-gradient-to-r from-blue-500 to-teal-500 rounded-2xl p-6 text-white">
-              <h3 className="text-2xl font-bold mb-2">Ready to Transform Your Fitness?</h3>
-              <p className="text-blue-100 mb-4">
+            <div className="bg-primary rounded-lg p-6 text-primary-foreground">
+              <h3 className="text-xl font-bold mb-2">Ready to Transform Your Fitness?</h3>
+              <p className="text-primary-foreground/80 mb-4">
                 Your personalized AI trainer has analyzed your profile and created a custom workout plan just for you.
               </p>
               <div className="flex justify-center space-x-4 text-sm">
@@ -188,19 +185,20 @@ export default function SetupCompleteScreen() {
           </div>
 
           {/* Action Buttons */}
-          <div className="text-center space-y-4">
-            <button
+          <div className="text-center space-y-4 p-6">
+            <Button
               onClick={handleStartWorkout}
-              className="w-full md:w-auto bg-gradient-to-r from-green-500 to-blue-500 text-white font-bold py-4 px-8 rounded-xl hover:from-green-600 hover:to-blue-600 transition-all duration-300 transform hover:scale-105 shadow-lg"
+              className="w-full md:w-auto h-12 text-base font-medium"
+              size="lg"
             >
-              🏋️ Start Your First Workout
-            </button>
+              Start Your First Workout
+            </Button>
             
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-muted-foreground">
               You can always update your preferences in the settings
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

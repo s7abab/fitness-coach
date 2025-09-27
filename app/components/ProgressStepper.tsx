@@ -27,20 +27,11 @@ export default function ProgressStepper({ currentStep, totalSteps, className = '
   return (
     <div className={`w-full ${className}`}>
       {/* Progress Bar */}
-      <div className="mb-4 sm:mb-6">
-        <div className="relative">
-          <Progress value={progressPercentage} className="h-2 sm:h-3 bg-gradient-to-r from-light-gray to-medium-gray" />
-          <div className="absolute inset-0 bg-gradient-clean rounded-full opacity-20"></div>
-        </div>
-        <div className="flex justify-between text-xs sm:text-sm font-medium text-primary mt-2">
-          <span className="flex items-center space-x-1 sm:space-x-2">
-            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-primary-orange rounded-full"></div>
-            <span>Step {currentStep} of {totalSteps}</span>
-          </span>
-          <span className="flex items-center space-x-1 sm:space-x-2">
-            <span>{Math.round(progressPercentage)}% complete</span>
-            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-success-green rounded-full"></div>
-          </span>
+      <div className="mb-6">
+        <Progress value={progressPercentage} className="h-2 bg-muted" />
+        <div className="flex justify-between text-sm font-medium text-muted-foreground mt-2">
+          <span>Step {currentStep} of {totalSteps}</span>
+          <span>{Math.round(progressPercentage)}% complete</span>
         </div>
       </div>
       
@@ -49,28 +40,27 @@ export default function ProgressStepper({ currentStep, totalSteps, className = '
         {steps.map((step) => (
           <div key={step.number} className="flex flex-col items-center group">
             <div
-              className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-colors ${
                 step.number <= currentStep
-                  ? 'bg-gradient-clean text-white shadow-lg hover:shadow-xl transform hover:scale-110'
-                  : 'bg-light-gray text-secondary hover:bg-medium-gray/20'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground'
               }`}
             >
               {step.number < currentStep ? (
-                <Check className="w-5 h-5" />
+                <Check className="w-4 h-4" />
               ) : (
                 step.number
               )}
             </div>
-            <Badge
-              variant={step.number <= currentStep ? 'default' : 'secondary'}
-              className={`text-xs mt-3 px-3 py-1 rounded-full transition-all duration-300 ${
+            <span
+              className={`text-xs mt-2 px-2 py-1 rounded transition-colors ${
                 step.number <= currentStep 
-                  ? 'bg-gradient-clean text-white shadow-md' 
-                  : 'bg-light-gray text-primary hover:bg-medium-gray/20'
+                  ? 'text-foreground font-medium' 
+                  : 'text-muted-foreground'
               }`}
             >
               {step.title}
-            </Badge>
+            </span>
           </div>
         ))}
       </div>
@@ -79,25 +69,23 @@ export default function ProgressStepper({ currentStep, totalSteps, className = '
       <div className="md:hidden">
         {/* Current Step Display */}
         <div className="text-center mb-4">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-clean text-white text-lg font-bold shadow-lg mb-2">
+          <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground text-sm font-medium mb-2">
             {currentStep}
           </div>
-          <h3 className="text-lg font-bold text-primary mb-1">
+          <h3 className="text-base font-medium text-foreground">
             {steps[currentStep - 1]?.title}
           </h3>
         </div>
 
         {/* Mobile Progress Dots */}
-        <div className="flex justify-center space-x-1.5">
+        <div className="flex justify-center space-x-2">
           {steps.map((_, index) => (
             <div
               key={index}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              className={`w-2 h-2 rounded-full transition-colors ${
                 index < currentStep
-                  ? 'bg-gradient-clean shadow-md'
-                  : index === currentStep - 1
-                  ? 'bg-gradient-clean ring-2 ring-primary-orange/30 scale-110'
-                  : 'bg-light-gray'
+                  ? 'bg-primary'
+                  : 'bg-muted'
               }`}
             />
           ))}
