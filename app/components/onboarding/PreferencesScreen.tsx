@@ -77,29 +77,29 @@ export default function PreferencesScreen() {
       <div className="max-w-4xl mx-auto px-2">
         <ProgressStepper currentStep={5} totalSteps={7} className="mb-8" />
         
-        <Card className="border shadow-sm animate-fade-in">
-          <CardHeader className="text-center pb-6 pt-8">
-            <CardTitle className="text-2xl font-bold text-foreground">
+        <Card className="border-2 border-gray-200 shadow-lg animate-fade-in bg-white">
+          <CardHeader className="text-center pb-8 pt-10 px-8">
+            <CardTitle className="text-3xl font-bold text-gray-900 mb-2">
               Let's customize your experience
             </CardTitle>
-            <CardDescription className="text-base text-muted-foreground">
+            <CardDescription className="text-lg text-gray-600">
               Tell us about your preferences and availability
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-6 sm:space-y-8">
+          <CardContent className="space-y-8 px-6 pb-6">
             {/* Workout Duration */}
             <div>
-              <h3 className="text-lg font-semibold mb-3">Preferred workout duration</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              <h3 className="text-lg font-semibold mb-4">Preferred workout duration</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {workoutDurations.map((duration) => (
                   <Button
                     key={duration.value}
                     onClick={() => handleDurationSelect(duration.value)}
                     variant={state.data.workoutDuration === duration.value ? "default" : "outline"}
-                    className="h-auto p-3 flex flex-col items-center space-y-1"
+                    className="h-auto p-4 flex flex-col items-center space-y-2 rounded-xl"
                   >
-                    <div className="font-semibold">{duration.label}</div>
+                    <div className="font-semibold text-base">{duration.label}</div>
                     <div className="text-sm opacity-70">{duration.description}</div>
                   </Button>
                 ))}
@@ -108,18 +108,18 @@ export default function PreferencesScreen() {
 
             {/* Available Days */}
             <div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">Available workout days</h3>
-              <p className="text-sm text-muted-foreground mb-3">Select the days you can work out each week</p>
+              <h3 className="text-lg font-semibold text-foreground mb-3">Available workout days</h3>
+              <p className="text-sm text-muted-foreground mb-4">Select the days you can work out each week</p>
               
               <div className="flex flex-wrap gap-2 sm:grid sm:grid-cols-7 sm:gap-3">
                 {daysOfWeek.map((day) => (
                   <button
                     key={day.id}
                     onClick={() => handleDayToggle(day.id)}
-                    className={`flex-1 min-w-[50px] sm:min-w-0 p-2 sm:p-3 rounded-lg border text-center transition-colors ${
+                    className={`flex-1 min-w-[50px] sm:min-w-0 p-3 rounded-lg border-2 text-center transition-all duration-200 ${
                       state.data.availableDays.includes(day.id)
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:bg-muted/50'
+                        ? 'border-black bg-black text-white shadow-lg'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     <div className="font-semibold text-sm sm:text-base">{day.label}</div>
@@ -127,7 +127,7 @@ export default function PreferencesScreen() {
                 ))}
               </div>
               {state.data.availableDays.length > 0 && (
-                <p className="text-sm text-muted-foreground mt-2">
+                <p className="text-sm text-muted-foreground mt-3">
                   Selected: {state.data.availableDays.map(day => daysOfWeek.find(d => d.id === day)?.full).join(', ')}
                 </p>
               )}
@@ -135,21 +135,21 @@ export default function PreferencesScreen() {
 
             {/* Workout Time */}
             <div>
-              <h3 className="text-lg font-semibold text-foreground mb-3">Preferred workout time</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Preferred workout time</h3>
+              <div className="grid grid-cols-2 gap-4">
                 {workoutTimes.map((time) => (
                   <button
                     key={time.value}
                     onClick={() => handleTimeSelect(time.value)}
-                    className={`p-3 rounded-lg border text-center transition-colors ${
+                    className={`p-6 rounded-xl border-2 text-center transition-all duration-200 hover:scale-105 ${
                       state.data.workoutTime === time.value
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:bg-muted/50'
+                        ? 'border-black bg-black text-white shadow-lg'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
-                    <div className="text-xl mb-2">{time.icon}</div>
-                    <div className="font-semibold text-foreground">{time.label}</div>
-                    <div className="text-sm text-muted-foreground">{time.description}</div>
+                    <div className="text-3xl mb-3">{time.icon}</div>
+                    <div className="font-semibold text-base mb-1">{time.label}</div>
+                    <div className="text-sm opacity-80">{time.description}</div>
                   </button>
                 ))}
               </div>
@@ -157,21 +157,21 @@ export default function PreferencesScreen() {
 
             {/* Equipment */}
             <div>
-              <h3 className="text-lg font-semibold text-foreground mb-3">Equipment availability</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              <h3 className="text-lg font-semibold text-foreground mb-4">Equipment availability</h3>
+              <div className="grid grid-cols-2 gap-4">
                 {equipmentOptions.map((equipment) => (
                   <button
                     key={equipment.value}
                     onClick={() => handleEquipmentSelect(equipment.value)}
-                    className={`p-3 rounded-lg border text-center transition-colors ${
+                    className={`p-6 rounded-xl border-2 text-center transition-all duration-200 hover:scale-105 ${
                       state.data.equipment === equipment.value
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border hover:bg-muted/50'
+                        ? 'border-black bg-black text-white shadow-lg'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
-                    <div className="text-xl mb-2">{equipment.icon}</div>
-                    <div className="font-semibold text-foreground">{equipment.label}</div>
-                    <div className="text-sm text-muted-foreground">{equipment.description}</div>
+                    <div className="text-3xl mb-3">{equipment.icon}</div>
+                    <div className="font-semibold text-base mb-1">{equipment.label}</div>
+                    <div className="text-sm opacity-80">{equipment.description}</div>
                   </button>
                 ))}
               </div>
@@ -179,31 +179,31 @@ export default function PreferencesScreen() {
 
           {/* Summary */}
           {(state.data.workoutDuration || state.data.workoutTime || state.data.equipment || state.data.availableDays.length > 0) && (
-            <div className="bg-muted/50 rounded-lg p-4 mt-6">
-              <h4 className="text-sm font-medium text-foreground mb-3">Your Preferences Summary:</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+            <div className="bg-gray-50 rounded-xl p-6 mt-8 border border-gray-200">
+              <h4 className="text-base font-semibold text-gray-900 mb-4">Your Preferences Summary:</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                 {state.data.workoutDuration && (
                   <div className="flex items-center space-x-2">
-                    <span className="text-muted-foreground">Duration:</span>
-                    <span className="font-medium">{workoutDurations.find(d => d.value === state.data.workoutDuration)?.label}</span>
+                    <span className="text-gray-600">Duration:</span>
+                    <span className="font-medium text-gray-900">{workoutDurations.find(d => d.value === state.data.workoutDuration)?.label}</span>
                   </div>
                 )}
                 {state.data.workoutTime && (
                   <div className="flex items-center space-x-2">
-                    <span className="text-muted-foreground">Time:</span>
-                    <span className="font-medium">{workoutTimes.find(t => t.value === state.data.workoutTime)?.label}</span>
+                    <span className="text-gray-600">Time:</span>
+                    <span className="font-medium text-gray-900">{workoutTimes.find(t => t.value === state.data.workoutTime)?.label}</span>
                   </div>
                 )}
                 {state.data.equipment && (
                   <div className="flex items-center space-x-2">
-                    <span className="text-muted-foreground">Equipment:</span>
-                    <span className="font-medium">{equipmentOptions.find(e => e.value === state.data.equipment)?.label}</span>
+                    <span className="text-gray-600">Equipment:</span>
+                    <span className="font-medium text-gray-900">{equipmentOptions.find(e => e.value === state.data.equipment)?.label}</span>
                   </div>
                 )}
                 {state.data.availableDays.length > 0 && (
                   <div className="flex items-center space-x-2">
-                    <span className="text-muted-foreground">Days:</span>
-                    <span className="font-medium">{state.data.availableDays.length} days selected</span>
+                    <span className="text-gray-600">Days:</span>
+                    <span className="font-medium text-gray-900">{state.data.availableDays.length} days selected</span>
                   </div>
                 )}
               </div>
@@ -213,18 +213,18 @@ export default function PreferencesScreen() {
           </CardContent>
 
           {/* Navigation Buttons */}
-          <div className="flex justify-between p-6 pt-0">
+          <div className="flex justify-between p-8 pt-4 border-t border-gray-200">
             <Button
               onClick={handleBack}
-              variant="ghost"
-              className="px-6 h-10"
+              variant="outline"
+              className="px-8 h-12 text-base font-medium border-2 border-gray-300 hover:border-gray-400"
             >
               ← Back
             </Button>
             <Button
               onClick={handleNext}
               disabled={!state.data.workoutDuration || !state.data.workoutTime || !state.data.equipment || state.data.availableDays.length === 0}
-              className="px-8 h-10"
+              className="px-8 h-12 text-base font-medium bg-black hover:bg-gray-800 text-white"
               size="lg"
             >
               Next →
