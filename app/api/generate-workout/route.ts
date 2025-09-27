@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { WorkoutGenerationRequest, WorkoutGenerationResponse, WorkoutPlan } from '@/lib/types/workout';
+import { WorkoutGenerationRequest, WorkoutGenerationResponse, WorkoutPlan, WorkoutDay } from '@/lib/types/workout';
 import { youtubeAPI } from '@/lib/youtube-api';
 
 // Retry function with exponential backoff
@@ -30,7 +30,7 @@ async function retryWithBackoff<T>(
 }
 
 // Function to enhance exercises with YouTube videos
-async function enhanceExercisesWithVideos(exercises: any[]): Promise<any[]> {
+async function enhanceExercisesWithVideos<T extends { name: string }>(exercises: T[]): Promise<T[]> {
   if (!process.env.YOUTUBE_API_KEY || exercises.length === 0) {
     return exercises;
   }
@@ -57,7 +57,7 @@ async function enhanceExercisesWithVideos(exercises: any[]): Promise<any[]> {
         console.warn(`Failed to find YouTube video for exercise: ${exercise.name}`, error);
       }
 
-      return exercise;
+      return exercise as T;
     })
   );
 
@@ -186,8 +186,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Enhance exercises with YouTube videos
+    type DayLike = {
+      warmup?: Array<{ name: string }>;
+      exercises?: Array<{ name: string }>;
+      cooldown?: Array<{ name: string }>;
+      [key: string]: unknown;
+    };
+
     const enhancedDays = await Promise.all(
-      (workoutPlanData.days || []).map(async (day: any) => {
+      (workoutPlanData.days || []).map(async (day: DayLike) => {
         const enhancedWarmup = await enhanceExercisesWithVideos(day.warmup || []);
         const enhancedExercises = await enhanceExercisesWithVideos(day.exercises || []);
         const enhancedCooldown = await enhanceExercisesWithVideos(day.cooldown || []);
@@ -209,7 +216,7 @@ export async function POST(request: NextRequest) {
       duration: workoutPlanData.duration || 4,
       difficulty: workoutPlanData.difficulty || userProfile.fitnessLevel,
       frequency: workoutPlanData.frequency || userProfile.availableDays.length,
-      days: enhancedDays,
+      days: enhancedDays as unknown as WorkoutDay[],
       goals: userProfile.goals,
       equipment: [userProfile.equipment],
       createdAt: new Date(),
@@ -255,6 +262,7 @@ USER PROFILE:
 - Preferred Workout Time: ${userProfile.workoutTime}
 - Equipment Available: ${userProfile.equipment}
 - Health Conditions: ${userProfile.healthConditions || 'None reported'}
+ - Split Preference: ${userProfile.splitPreference || 'auto (you choose the optimal split)'}
 
 WORKOUT PLAN REQUIREMENTS:
 1. Create exactly ${userProfile.availableDays.length} workout days
@@ -267,14 +275,21 @@ WORKOUT PLAN REQUIREMENTS:
 8. Include proper rest periods (30-90 seconds between sets)
 9. Consider age-appropriate modifications for ${userProfile.age} years old
 10. Focus on clear exercise descriptions (YouTube videos will be added automatically)
+11. Split handling:
+   - If Split Preference is not 'auto', strictly follow that split across the week
+   - If 'auto', choose the optimal split based on goals and available days, and explicitly state it in the plan description as "Split: ..."
 
 EXERCISE GUIDELINES:
 - For beginners: 2-3 sets, 8-12 reps, focus on form
 - For intermediate: 3-4 sets, 10-15 reps, moderate intensity
-- For advanced: 4-5 sets, 12-20 reps, high intensity
+- For advanced: 4-6 sets, 8-15 reps for compounds and 12-20 for accessories, high intensity; allow supersets/giant sets if needed to fit time
 - Include both strength and cardio elements
 - Vary exercises to prevent boredom
 - Progress difficulty over the 4-week duration
+ - Exercise count per day:
+   - Beginner: 4-6 exercises per day
+   - Intermediate: 5-8 exercises per day
+   - Advanced: 6-10 exercises per day (ABSOLUTE MINIMUM 5). Never return only 2-3 exercises for advanced plans.
 
 RESPONSE FORMAT:
 Return ONLY valid JSON with this exact structure:
@@ -362,7 +377,7 @@ CRITICAL REQUIREMENTS:
 - All string values must be in double quotes
 - Focus on clear, descriptive exercise names for automatic video matching
 - Ensure all exercises match the user's fitness level
-- Include 4-8 exercises per workout day
+- Enforce exercise counts from the guidelines above based on fitness level
 - Vary workout focus (upper body, lower body, cardio, full body)
 - Make exercises progressive and challenging
 - Include proper warm-up and cool-down for each day

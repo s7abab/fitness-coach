@@ -130,6 +130,7 @@ export function WorkoutProvider({ children }: { children: React.ReactNode }) {
           workoutTime: userProfile.workoutTime,
           equipment: userProfile.equipment,
           healthConditions: userProfile.healthConditions,
+          splitPreference: userProfile.splitPreference,
         },
       };
 

@@ -51,6 +51,7 @@ export interface WorkoutGenerationRequest {
     workoutTime: string;
     equipment: string;
     healthConditions?: string;
+    splitPreference?: string; // e.g., "push/pull/legs", "upper/lower", "full body", or undefined to let AI suggest
   };
 }
 

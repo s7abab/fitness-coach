@@ -5,7 +5,14 @@ import { useOnboarding } from '../../contexts/OnboardingContext';
 import ProgressStepper from '../ProgressStepper';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+
+const splitOptions = [
+  { value: 'auto', label: 'Suggest best split', description: 'We pick based on your days/goals' },
+  { value: 'full body', label: 'Full Body', description: 'Same pattern each day' },
+  { value: 'upper/lower', label: 'Upper / Lower', description: 'Alternate upper and lower' },
+  { value: 'push/pull/legs', label: 'Push / Pull / Legs', description: 'Classic PPL rotation' },
+  { value: 'bro split', label: 'Bro Split', description: 'Body part per day' }
+];
 
 const workoutDurations = [
   { value: '15', label: '15 minutes', description: 'Quick workouts' },
@@ -53,6 +60,10 @@ export default function PreferencesScreen() {
     dispatch({ type: 'UPDATE_DATA', data: { equipment } });
   };
 
+  const handleSplitSelect = (splitPreference: string) => {
+    dispatch({ type: 'UPDATE_DATA', data: { splitPreference } });
+  };
+
   const handleDayToggle = (day: string) => {
     const currentDays = state.data.availableDays;
     const newDays = currentDays.includes(day)
@@ -80,7 +91,7 @@ export default function PreferencesScreen() {
         <Card className="border-2 border-gray-200 shadow-lg animate-fade-in bg-white">
           <CardHeader className="text-center pb-8 pt-10 px-8">
             <CardTitle className="text-3xl font-bold text-gray-900 mb-2">
-              Let's customize your experience
+              Let&apos;s customize your experience
             </CardTitle>
             <CardDescription className="text-lg text-gray-600">
               Tell us about your preferences and availability
@@ -177,6 +188,27 @@ export default function PreferencesScreen() {
               </div>
             </div>
 
+          {/* Split Preference */}
+          <div>
+            <h3 className="text-lg font-semibold text-foreground mb-4">Preferred workout split</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {splitOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => handleSplitSelect(opt.value)}
+                  className={`p-4 rounded-xl border-2 text-left transition-all duration-200 ${
+                    state.data.splitPreference === opt.value
+                      ? 'border-black bg-black text-white shadow-lg'
+                      : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="font-semibold">{opt.label}</div>
+                  <div className="text-sm opacity-80">{opt.description}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Summary */}
           {(state.data.workoutDuration || state.data.workoutTime || state.data.equipment || state.data.availableDays.length > 0) && (
             <div className="bg-gray-50 rounded-xl p-6 mt-8 border border-gray-200">
@@ -204,6 +236,12 @@ export default function PreferencesScreen() {
                   <div className="flex items-center space-x-2">
                     <span className="text-gray-600">Days:</span>
                     <span className="font-medium text-gray-900">{state.data.availableDays.length} days selected</span>
+                  </div>
+                )}
+                {state.data.splitPreference && (
+                  <div className="flex items-center space-x-2">
+                    <span className="text-gray-600">Split:</span>
+                    <span className="font-medium text-gray-900">{splitOptions.find(s => s.value === state.data.splitPreference)?.label || 'Suggest best split'}</span>
                   </div>
                 )}
               </div>

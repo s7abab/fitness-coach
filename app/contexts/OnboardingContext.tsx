@@ -23,6 +23,7 @@ export interface OnboardingData {
   availableDays: string[];
   workoutTime: string;
   equipment: string;
+  splitPreference?: string; // e.g., 'auto', 'full body', 'upper/lower', 'push/pull/legs'
   
   // Health & Safety
   hasHealthConditions: boolean;
@@ -61,6 +62,7 @@ const initialState: OnboardingState = {
     availableDays: [],
     workoutTime: '',
     equipment: '',
+    splitPreference: 'auto',
     hasHealthConditions: false,
     healthConditions: '',
     agreedToTerms: false,
