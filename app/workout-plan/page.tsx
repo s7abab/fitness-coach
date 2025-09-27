@@ -3,14 +3,15 @@
 import React from 'react';
 import { useWorkout } from '../contexts/WorkoutContext';
 import { useOnboarding } from '../contexts/OnboardingContext';
+import { WorkoutProvider } from '../contexts/WorkoutContext';
 import WorkoutPlanDisplay from '../components/workout/WorkoutPlanDisplay';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Play } from 'lucide-react';
 import Link from 'next/link';
 
-export default function WorkoutPlanPage() {
+function WorkoutPlanPageContent() {
   const { state, generateWorkoutPlan } = useWorkout();
   const { state: onboardingState } = useOnboarding();
 
@@ -82,22 +83,12 @@ export default function WorkoutPlanPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Your Workout Plan</h1>
-              <p className="text-muted-foreground">
-                Generated on {new Date(state.currentWorkoutPlan.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-            <Link href="/">
-              <Button variant="outline">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Setup
-              </Button>
-            </Link>
-          </div>
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <div>
+          <h1 className="text-2xl font-bold">Your Workout Plan</h1>
+          <p className="text-muted-foreground">
+            Generated on {new Date(state.currentWorkoutPlan.createdAt).toLocaleDateString()}
+          </p>
         </div>
       </div>
       
@@ -107,5 +98,13 @@ export default function WorkoutPlanPage() {
         isRegenerating={state.isGenerating}
       />
     </div>
+  );
+}
+
+export default function WorkoutPlanPage() {
+  return (
+    <WorkoutProvider>
+      <WorkoutPlanPageContent />
+    </WorkoutProvider>
   );
 }

@@ -62,3 +62,30 @@ export interface WorkoutGenerationResponse {
   isFallback?: boolean;
   message?: string;
 }
+
+export interface DailyWorkoutSession {
+  id: string;
+  workoutPlanId: string;
+  dayName: string;
+  date: string; // YYYY-MM-DD format
+  startTime?: Date;
+  endTime?: Date;
+  completedExercises: string[]; // Array of exercise names that were completed
+  notes?: string;
+  rating?: number; // 1-5 scale
+  isCompleted: boolean;
+}
+
+export interface WorkoutProgress {
+  totalSessions: number;
+  completedSessions: number;
+  currentStreak: number;
+  longestStreak: number;
+  lastWorkoutDate?: string;
+  weeklyProgress: {
+    [week: string]: {
+      completed: number;
+      total: number;
+    };
+  };
+}

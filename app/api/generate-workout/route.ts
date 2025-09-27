@@ -29,6 +29,79 @@ async function retryWithBackoff<T>(
   throw new Error('Max retries exceeded');
 }
 
+// Advanced JSON repair function
+function repairJsonString(jsonString: string): string {
+  let repaired = jsonString;
+  
+  // Remove any non-JSON content before the first {
+  const firstBrace = repaired.indexOf('{');
+  if (firstBrace > 0) {
+    repaired = repaired.substring(firstBrace);
+  }
+  
+  // Remove any content after the last }
+  const lastBrace = repaired.lastIndexOf('}');
+  if (lastBrace !== -1 && lastBrace < repaired.length - 1) {
+    repaired = repaired.substring(0, lastBrace + 1);
+  }
+  
+  // Fix common JSON issues
+  repaired = repaired
+    // Remove trailing commas before closing brackets/braces
+    .replace(/,(\s*[}\]])/g, '$1')
+    // Fix unquoted keys
+    .replace(/(\w+):/g, '"$1":')
+    // Fix unquoted string values (but not numbers, booleans, null)
+    .replace(/:\s*([a-zA-Z_][a-zA-Z0-9_\s-]*?)(\s*[,}\]])/g, (match, value, ending) => {
+      // Don't quote if it's a number, boolean, or null
+      if (/^\d+(\.\d+)?$/.test(value.trim()) || 
+          value.trim() === 'true' || 
+          value.trim() === 'false' || 
+          value.trim() === 'null') {
+        return `: ${value.trim()}${ending}`;
+      }
+      return `: "${value.trim()}"${ending}`;
+    })
+    // Fix unquoted string values at the end of objects/arrays
+    .replace(/:\s*([a-zA-Z_][a-zA-Z0-9_\s-]*?)(\s*[}\]])/g, (match, value, ending) => {
+      if (/^\d+(\.\d+)?$/.test(value.trim()) || 
+          value.trim() === 'true' || 
+          value.trim() === 'false' || 
+          value.trim() === 'null') {
+        return `: ${value.trim()}${ending}`;
+      }
+      return `: "${value.trim()}"${ending}`;
+    })
+    // Remove extra spaces around colons
+    .replace(/:\s+/g, ': ')
+    // Remove extra spaces around commas
+    .replace(/\s*,\s*/g, ', ')
+    // Fix missing commas between array elements
+    .replace(/\]\s*\[/g, '], [')
+    // Fix missing commas between object properties
+    .replace(/}\s*{/g, '}, {')
+    // Remove trailing commas one more time
+    .replace(/,(\s*[}\]])/g, '$1');
+  
+  // Try to balance brackets and braces
+  const openBraces = (repaired.match(/\{/g) || []).length;
+  const closeBraces = (repaired.match(/\}/g) || []).length;
+  const openBrackets = (repaired.match(/\[/g) || []).length;
+  const closeBrackets = (repaired.match(/\]/g) || []).length;
+  
+  // Close incomplete arrays
+  for (let i = 0; i < openBrackets - closeBrackets; i++) {
+    repaired += ']';
+  }
+  
+  // Close incomplete objects
+  for (let i = 0; i < openBraces - closeBraces; i++) {
+    repaired += '}';
+  }
+  
+  return repaired;
+}
+
 // Function to enhance exercises with YouTube videos
 async function enhanceExercisesWithVideos<T extends { name: string }>(exercises: T[]): Promise<T[]> {
   if (!process.env.YOUTUBE_API_KEY || exercises.length === 0) {
@@ -103,7 +176,7 @@ export async function POST(request: NextRequest) {
             }
           ],
           temperature: 0.7,
-          max_tokens: 4000,
+          max_tokens: 8000,
         }),
       });
 
@@ -124,7 +197,8 @@ export async function POST(request: NextRequest) {
         throw new Error('No content in OpenAI response');
       }
       
-      console.log('Raw AI response:', text.substring(0, 500) + '...');
+      console.log('Raw AI response length:', text.length);
+      console.log('Raw AI response preview:', text.substring(0, 500) + '...');
       
       // Try to find and extract JSON from the response
       let jsonString = text.trim();
@@ -140,48 +214,120 @@ export async function POST(request: NextRequest) {
         jsonString = jsonString.substring(jsonStart, jsonEnd + 1);
       }
       
-      // Clean up common JSON issues
-      jsonString = jsonString
-        .replace(/,\s*}/g, '}')  // Remove trailing commas before closing braces
-        .replace(/,\s*]/g, ']')  // Remove trailing commas before closing brackets
-        .replace(/(\w+):/g, '"$1":')  // Quote unquoted keys
-        .replace(/:(\w+)/g, ':"$1"')  // Quote unquoted string values
-        .replace(/:(\d+)/g, ':$1')    // Keep numbers unquoted
-        .replace(/:(\d+\.\d+)/g, ':$1') // Keep decimals unquoted
-        .replace(/:true/g, ':true')   // Keep booleans unquoted
-        .replace(/:false/g, ':false')
-        .replace(/:null/g, ':null');
+      // Check if the JSON appears to be truncated
+      const openBraces = (jsonString.match(/\{/g) || []).length;
+      const closeBraces = (jsonString.match(/\}/g) || []).length;
+      const openBrackets = (jsonString.match(/\[/g) || []).length;
+      const closeBrackets = (jsonString.match(/\]/g) || []).length;
       
-      console.log('Cleaned JSON string:', jsonString.substring(0, 500) + '...');
+      if (openBraces > closeBraces || openBrackets > closeBrackets) {
+        console.warn('JSON appears to be truncated, attempting to fix...');
+        
+        // Try to close incomplete structures
+        let fixedJson = jsonString;
+        
+        // Close incomplete arrays
+        for (let i = 0; i < openBrackets - closeBrackets; i++) {
+          fixedJson += ']';
+        }
+        
+        // Close incomplete objects
+        for (let i = 0; i < openBraces - closeBraces; i++) {
+          fixedJson += '}';
+        }
+        
+        jsonString = fixedJson;
+      }
+      
+      // Use the advanced repair function
+      jsonString = repairJsonString(jsonString);
+      
+      console.log('Cleaned JSON string length:', jsonString.length);
+      console.log('Cleaned JSON string preview:', jsonString.substring(0, 500) + '...');
       
       workoutPlanData = JSON.parse(jsonString);
     } catch (parseError: unknown) {
       console.error('Error parsing OpenAI response:', parseError);
-      console.error('Raw response:', text);
+      console.error('Raw response length:', text.length);
+      console.error('Raw response preview:', text.substring(0, 1000));
       
-      // Try a more aggressive JSON extraction
+      // Try a more aggressive JSON extraction and repair
       try {
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
-          const rawJson = jsonMatch[0];
-          console.log('Attempting to parse raw JSON match:', rawJson.substring(0, 500) + '...');
+          let rawJson = jsonMatch[0];
+          console.log('Attempting to parse raw JSON match length:', rawJson.length);
+          
+          // Use the advanced repair function
+          rawJson = repairJsonString(rawJson);
+          
+          console.log('Repaired JSON preview:', rawJson.substring(0, 500) + '...');
           workoutPlanData = JSON.parse(rawJson);
         } else {
           throw new Error('No JSON object found in response');
         }
       } catch (secondParseError: unknown) {
         console.error('Second parse attempt failed:', secondParseError);
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Failed to parse workout plan from AI response. The AI may have returned malformed JSON.',
-            debug: {
-              rawResponse: text.substring(0, 1000),
-              parseError: parseError instanceof Error ? parseError.message : String(parseError)
-            }
-          },
-          { status: 500 }
-        );
+        
+        // Try a third attempt with more aggressive repair
+        try {
+          console.log('Attempting third parse with aggressive repair...');
+          let aggressiveRepair = text;
+          
+          // Extract just the JSON part
+          const jsonStart = aggressiveRepair.indexOf('{');
+          const jsonEnd = aggressiveRepair.lastIndexOf('}');
+          
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            aggressiveRepair = aggressiveRepair.substring(jsonStart, jsonEnd + 1);
+          }
+          
+          // More aggressive repairs
+          aggressiveRepair = aggressiveRepair
+            .replace(/,(\s*[}\]])/g, '$1')  // Remove trailing commas
+            .replace(/(\w+):/g, '"$1":')  // Quote all keys
+            .replace(/:\s*([a-zA-Z_][a-zA-Z0-9_\s-]*?)(\s*[,}\]])/g, (match, value, ending) => {
+              const trimmed = value.trim();
+              if (/^\d+(\.\d+)?$/.test(trimmed) || trimmed === 'true' || trimmed === 'false' || trimmed === 'null') {
+                return `: ${trimmed}${ending}`;
+              }
+              return `: "${trimmed}"${ending}`;
+            })
+            .replace(/,(\s*[}\]])/g, '$1');  // Final cleanup
+          
+          console.log('Aggressive repair preview:', aggressiveRepair.substring(0, 500) + '...');
+          workoutPlanData = JSON.parse(aggressiveRepair);
+        } catch (thirdParseError: unknown) {
+          console.error('Third parse attempt failed:', thirdParseError);
+          
+          // Try to generate a fallback workout plan
+          try {
+            console.log('Attempting to generate fallback workout plan...');
+            const fallbackPlan = await generateFallbackWorkoutPlan(userProfile);
+            return NextResponse.json({
+              success: true,
+              workoutPlan: fallbackPlan,
+              isFallback: true,
+              message: 'Generated a simplified workout plan due to parsing issues with the full plan.'
+            });
+          } catch (fallbackError) {
+            console.error('Fallback generation failed:', fallbackError);
+            return NextResponse.json(
+              { 
+                success: false, 
+                error: 'Failed to parse workout plan from AI response. The AI response may be too long or malformed.',
+                debug: {
+                  rawResponseLength: text.length,
+                  rawResponsePreview: text.substring(0, 1000),
+                  parseError: parseError instanceof Error ? parseError.message : String(parseError),
+                  secondParseError: secondParseError instanceof Error ? secondParseError.message : String(secondParseError),
+                  thirdParseError: thirdParseError instanceof Error ? thirdParseError.message : String(thirdParseError)
+                }
+              },
+              { status: 500 }
+            );
+          }
+        }
       }
     }
 
@@ -289,7 +435,7 @@ EXERCISE GUIDELINES:
  - Exercise count per day:
    - Beginner: 4-6 exercises per day
    - Intermediate: 5-8 exercises per day
-   - Advanced: 6-10 exercises per day (ABSOLUTE MINIMUM 5). Never return only 2-3 exercises for advanced plans.
+   - Advanced: 6-8 exercises per day (ABSOLUTE MINIMUM 5). Never return only 2-3 exercises for advanced plans.
 
 RESPONSE FORMAT:
 Return ONLY valid JSON with this exact structure:
@@ -416,4 +562,104 @@ EXAMPLE VALID JSON FORMAT:
   ]
 }
 `;
+}
+
+// Fallback function to generate a simple workout plan when the main generation fails
+async function generateFallbackWorkoutPlan(userProfile: WorkoutGenerationRequest['userProfile']): Promise<WorkoutPlan> {
+  const basicExercises = {
+    beginner: [
+      { name: 'Bodyweight Squats', muscleGroups: ['legs', 'glutes'] },
+      { name: 'Push-ups', muscleGroups: ['chest', 'shoulders', 'triceps'] },
+      { name: 'Plank', muscleGroups: ['core'] },
+      { name: 'Lunges', muscleGroups: ['legs', 'glutes'] },
+      { name: 'Mountain Climbers', muscleGroups: ['core', 'cardio'] }
+    ],
+    intermediate: [
+      { name: 'Barbell Squats', muscleGroups: ['legs', 'glutes'] },
+      { name: 'Bench Press', muscleGroups: ['chest', 'shoulders', 'triceps'] },
+      { name: 'Deadlifts', muscleGroups: ['back', 'legs', 'glutes'] },
+      { name: 'Pull-ups', muscleGroups: ['back', 'biceps'] },
+      { name: 'Overhead Press', muscleGroups: ['shoulders', 'triceps'] },
+      { name: 'Bent-over Rows', muscleGroups: ['back', 'biceps'] }
+    ],
+    advanced: [
+      { name: 'Barbell Squats', muscleGroups: ['legs', 'glutes'] },
+      { name: 'Bench Press', muscleGroups: ['chest', 'shoulders', 'triceps'] },
+      { name: 'Deadlifts', muscleGroups: ['back', 'legs', 'glutes'] },
+      { name: 'Pull-ups', muscleGroups: ['back', 'biceps'] },
+      { name: 'Overhead Press', muscleGroups: ['shoulders', 'triceps'] },
+      { name: 'Bent-over Rows', muscleGroups: ['back', 'biceps'] },
+      { name: 'Dips', muscleGroups: ['chest', 'triceps'] },
+      { name: 'Leg Press', muscleGroups: ['legs', 'glutes'] }
+    ]
+  };
+
+  const exercises = basicExercises[userProfile.fitnessLevel as keyof typeof basicExercises] || basicExercises.beginner;
+  
+  const workoutDays: WorkoutDay[] = userProfile.availableDays.map((day, index) => {
+    const dayExercises = exercises.slice(0, Math.min(6, exercises.length));
+    
+    return {
+      day,
+      focus: index % 2 === 0 ? 'Upper Body' : 'Lower Body',
+      duration: parseInt(userProfile.workoutDuration),
+      warmup: [
+        {
+          name: 'Light Cardio',
+          description: '5 minutes of light jogging or jumping jacks',
+          sets: 1,
+          reps: '5 minutes',
+          restTime: '0 seconds',
+          equipment: ['none'],
+          muscleGroups: ['cardio'],
+          instructions: ['Start with light movement', 'Gradually increase intensity'],
+          difficulty: userProfile.fitnessLevel as 'beginner' | 'intermediate' | 'advanced'
+        }
+      ],
+      exercises: dayExercises.map(exercise => ({
+        name: exercise.name,
+        description: `Basic ${exercise.name.toLowerCase()} exercise`,
+        sets: userProfile.fitnessLevel === 'beginner' ? 3 : userProfile.fitnessLevel === 'intermediate' ? 4 : 5,
+        reps: userProfile.fitnessLevel === 'beginner' ? '8-12' : userProfile.fitnessLevel === 'intermediate' ? '10-15' : '8-15',
+        restTime: '60 seconds',
+        equipment: [userProfile.equipment],
+        muscleGroups: exercise.muscleGroups,
+        instructions: [
+          'Start in the proper position',
+          'Execute the movement with control',
+          'Return to starting position',
+          'Repeat for specified reps'
+        ],
+        difficulty: userProfile.fitnessLevel as 'beginner' | 'intermediate' | 'advanced'
+      })),
+      cooldown: [
+        {
+          name: 'Stretching',
+          description: '5 minutes of full-body stretching',
+          sets: 1,
+          reps: '5 minutes',
+          restTime: '0 seconds',
+          equipment: ['none'],
+          muscleGroups: ['full body'],
+          instructions: ['Hold each stretch for 30 seconds', 'Focus on major muscle groups'],
+          difficulty: 'beginner'
+        }
+      ],
+      notes: 'Focus on proper form and controlled movements'
+    };
+  });
+
+  return {
+    id: `workout-fallback-${Date.now()}`,
+    name: `${userProfile.name}'s Basic Workout Plan`,
+    description: 'A simplified workout plan designed for your fitness level and goals',
+    duration: 4,
+    difficulty: userProfile.fitnessLevel as 'beginner' | 'intermediate' | 'advanced',
+    frequency: userProfile.availableDays.length,
+    days: workoutDays,
+    goals: userProfile.goals,
+    equipment: [userProfile.equipment],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 }

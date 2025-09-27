@@ -26,8 +26,8 @@ export default function SetupCompleteScreen() {
   const handleStartWorkout = async () => {
     try {
       await generateWorkoutPlan(state.data);
-      // Automatically navigate to workout plan page after generation
-      router.push('/workout-plan');
+      // Automatically navigate to dashboard after generation
+      router.push('/dashboard');
     } catch (error) {
       console.error('Error generating workout plan:', error);
     }

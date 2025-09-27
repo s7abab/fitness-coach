@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { OnboardingProvider } from "./contexts/OnboardingContext";
 import { WorkoutProvider } from "./contexts/WorkoutContext";
+import Navigation from "./components/Navigation";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,7 +32,10 @@ export default function RootLayout({
       >
         <OnboardingProvider>
           <WorkoutProvider>
-            {children}
+            <div className="min-h-screen">
+              <Navigation />
+              {children}
+            </div>
           </WorkoutProvider>
         </OnboardingProvider>
       </body>
