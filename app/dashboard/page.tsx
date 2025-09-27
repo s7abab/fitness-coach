@@ -12,7 +12,6 @@ import {
   Play, 
   Target, 
   TrendingUp, 
-  Clock, 
   ArrowRight,
   CheckCircle,
   AlertCircle
