@@ -2,15 +2,20 @@
 
 import React, { useEffect, useState } from 'react';
 import { useOnboarding } from '../../contexts/OnboardingContext';
+import { useWorkout } from '../../contexts/WorkoutContext';
 import ProgressStepper from '../ProgressStepper';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, TrendingUp, Clock, Heart } from 'lucide-react';
+import { CheckCircle, TrendingUp, Clock, Heart, Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useRouter } from 'next/navigation';
 
 export default function SetupCompleteScreen() {
   const { state, dispatch } = useOnboarding();
+  const { state: workoutState, generateWorkoutPlan, clearError } = useWorkout();
   const [showAnimation, setShowAnimation] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     // Trigger completion and animation
@@ -18,11 +23,16 @@ export default function SetupCompleteScreen() {
     setShowAnimation(true);
   }, [dispatch]);
 
-  const handleStartWorkout = () => {
-    // Here you would typically redirect to the main app or first workout
-    console.log('Starting first workout with data:', state.data);
-    // For now, we'll just show an alert
-    alert('Welcome to FitAI Coach! Your personalized fitness journey is ready to begin.');
+  const handleStartWorkout = async () => {
+    try {
+      await generateWorkoutPlan(state.data);
+    } catch (error) {
+      console.error('Error generating workout plan:', error);
+    }
+  };
+
+  const handleViewWorkoutPlan = () => {
+    router.push('/workout-plan');
   };
 
   const getFitnessLevelDisplay = (level: string) => {
@@ -184,15 +194,76 @@ export default function SetupCompleteScreen() {
             </div>
           </div>
 
+          {/* Error Display */}
+          {workoutState.error && (
+            <div className="p-6">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {workoutState.error}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={clearError}
+                    className="ml-2"
+                  >
+                    Dismiss
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {workoutState.currentWorkoutPlan && (
+            <div className="p-6">
+              <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Your personalized workout plan has been generated successfully! 
+                  You can now start your fitness journey.
+                </AlertDescription>
+              </Alert>
+            </div>
+          )}
+
           {/* Action Buttons */}
           <div className="text-center space-y-4 p-6">
-            <Button
-              onClick={handleStartWorkout}
-              className="w-full md:w-auto h-12 text-base font-medium"
-              size="lg"
-            >
-              Start Your First Workout
-            </Button>
+            {!workoutState.currentWorkoutPlan ? (
+              <Button
+                onClick={handleStartWorkout}
+                disabled={workoutState.isGenerating}
+                className="w-full md:w-auto h-12 text-base font-medium"
+                size="lg"
+              >
+                {workoutState.isGenerating ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Generating Your Workout Plan...
+                  </>
+                ) : (
+                  'Generate Your Workout Plan'
+                )}
+              </Button>
+            ) : (
+              <div className="space-y-3">
+                <Button
+                  onClick={handleViewWorkoutPlan}
+                  className="w-full md:w-auto h-12 text-base font-medium"
+                  size="lg"
+                >
+                  View Your Workout Plan
+                </Button>
+                <Button
+                  onClick={handleStartWorkout}
+                  variant="outline"
+                  className="w-full md:w-auto h-10 text-base font-medium"
+                  size="lg"
+                >
+                  Regenerate Workout Plan
+                </Button>
+              </div>
+            )}
             
             <div className="text-sm text-muted-foreground">
               You can always update your preferences in the settings

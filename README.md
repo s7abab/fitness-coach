@@ -1,6 +1,6 @@
-# FitAI Coach - AI Fitness App Onboarding
+# FitAI Coach - AI Fitness App with Workout Generation
 
-A comprehensive onboarding flow for an AI-powered fitness application built with Next.js 14, TypeScript, and Tailwind CSS.
+A comprehensive AI-powered fitness application with personalized workout plan generation using Gemini Flash 2.5, built with Next.js 14, TypeScript, and Tailwind CSS.
 
 ## Features
 
@@ -22,6 +22,9 @@ A comprehensive onboarding flow for an AI-powered fitness application built with
 - **Mobile-first responsive design**
 - **Smooth animations** and transitions
 - **Accessibility features** built-in
+- **Gemini Flash 2.5** AI integration for workout generation
+- **RESTful API** for workout plan creation
+- **TypeScript types** for type safety
 
 ### 📱 User Experience
 - Clean, modern interface with plenty of white space
@@ -39,12 +42,19 @@ A comprehensive onboarding flow for an AI-powered fitness application built with
 npm install
 ```
 
-2. Run the development server:
+2. Set up environment variables:
+Create a `.env.local` file in the root directory and add your Gemini API key:
+```bash
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+Get your API key from: https://makersuite.google.com/app/apikey
+
+3. Run the development server:
 ```bash
 npm run dev
 ```
 
-3. Open [http://localhost:3000](http://localhost:3000) to see the onboarding flow
+4. Open [http://localhost:3000](http://localhost:3000) to see the onboarding flow
 
 ## Project Structure
 
@@ -110,7 +120,26 @@ app/
 - Success animation and celebration
 - Complete profile summary
 - Motivational messaging
-- "Start First Workout" action button
+- "Generate Your Workout Plan" button with AI integration
+- Workout plan display and management
+
+## AI Workout Generation
+
+The app uses Google's Gemini Flash 2.5 model to generate personalized workout plans based on:
+
+- **User Profile**: Age, gender, height, weight, fitness level
+- **Goals**: Weight loss, muscle building, endurance, flexibility, etc.
+- **Preferences**: Workout duration, available days, equipment
+- **Health Conditions**: Any limitations or special considerations
+
+### Generated Workout Features:
+- **Personalized Exercises**: Tailored to fitness level and goals
+- **Detailed Instructions**: Step-by-step exercise guidance
+- **Equipment Requirements**: Based on available equipment
+- **Progressive Difficulty**: Appropriate for user's fitness level
+- **Warm-up & Cool-down**: Complete workout structure
+- **Rest Periods**: Optimized recovery between exercises
+- **Muscle Group Focus**: Balanced training approach
 
 ## Customization
 
